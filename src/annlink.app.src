@@ -1,0 +1,17 @@
+{application, annlink,
+ [{description, "Link between eralgn applications and deep learning frameworks"},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {mod, { annlink_app, []}},
+  {applications,
+   [kernel,
+    stdlib,
+    lager
+   ]},
+  {env,[]},
+  {modules, []},
+
+  {maintainers, []},
+  {licenses, []},
+  {links, []}
+ ]}.
