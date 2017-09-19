@@ -23,7 +23,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             msglen = int.from_bytes(read_exact(self.request, 4), 'big')
             data = read_exact(self.request, msglen)
             print("Msg length:", len(data))
-            message = json.loads(data)
+            message = json.loads(data.decode('utf-8'))
             operation = message['operation']
             arguments = message['args']
             resp = call(model, operation, arguments)
@@ -46,8 +46,9 @@ def read_exact(socket, size):
 def call(model, operation, arguments):
     result = getattr(model, operation)(*arguments)
     print("Function call result", result)
-    if operation != "predict":
-        # TODO: We don't care for the result of anything that is not predict.
+    if operation != "predict" and operation != "get_weights" and operation != "train":
+        # TODO: We don't care for the result of anything that is not
+        #       predict, get_weights or train.
         result = "ok"
     return json.dumps({'result': result}).encode('utf-8')
 

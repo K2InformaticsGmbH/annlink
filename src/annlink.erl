@@ -13,7 +13,15 @@
     initialize/3,
     add_layer/2,
     add_activation/2,
+    set_cost/2,
+    add_data_chunk/3,
+    add_data_chunk/4,
+    set_learning_rate/2,
     set_weights/2,
+    train/1,
+    train/2,
+    train/3,
+    get_weights/1,
     predict/2
 ]).
 
@@ -43,7 +51,7 @@ new_connection(Address, Port) ->
 %% ann helper function.
 -spec create_neural_network(binary(), [pos_integer()]) -> {error, term()} | {ok, binary()}.
 create_neural_network(NetworkId, Layers) ->
-    create_neural_network(NetworkId, Layers, []).
+    create_neural_network(NetworkId, Layers, sigmoid).
 
 -spec create_neural_network(binary(), [pos_integer()], [float()] | atom()) -> {error, term()} | {ok, binary()}.
 create_neural_network(_NetworkId, Layers, _) when length(Layers) < 3 ->
@@ -84,6 +92,37 @@ add_layer(NetworkId, Size) ->
 add_activation(NetworkId, Activation) ->
     gen_server:call(?NETWORK_GID(NetworkId), {add_activation, Activation}).
 
+-spec set_cost(binary(), atom()) -> ok | {error, binary()}.
+set_cost(NetworkId, CostFunc) ->
+    gen_server:call(?NETWORK_GID(NetworkId), {set_cost, CostFunc}).
+
+-spec add_data_chunk(binary(), list(), list()) -> ok | {error, binary()}.
+add_data_chunk(NetworkId, Inputs, Labels) ->
+    gen_server:call(?NETWORK_GID(NetworkId), {add_data_chunk, [Inputs, Labels]}).
+
+-spec add_data_chunk(binary(), list(), list(), list()) -> ok | {error, binary()}.
+add_data_chunk(NetworkId, Inputs, Labels, Scale) ->
+    gen_server:call(?NETWORK_GID(NetworkId), {add_data_chunk, [Inputs, Labels, Scale]}).
+
+-spec set_learning_rate(binary(), float()) -> ok | {error, binary()}.
+set_learning_rate(NetworkId, LearningRate) ->
+    gen_server:call(?NETWORK_GID(NetworkId), {set_learning_rate, LearningRate}).
+
+-spec train(binary()) -> ok | {error, binary()}.
+train(NetworkId) -> train(NetworkId, []).
+
+-spec train(binary(), pos_integer() | [pos_integer()]) -> ok | {error, binary()}.
+train(NetworkId, Epochs) when is_integer(Epochs) -> train(NetworkId, [Epochs]);
+train(NetworkId, Args) when is_list(Args) ->
+    gen_server:call(?NETWORK_GID(NetworkId), {train, Args}).
+
+-spec train(binary(), pos_integer(), pos_integer()) -> ok | {error, binary()}.
+train(NetworkId, Epochs, BatchSize) -> train(NetworkId, [Epochs, BatchSize]).
+
+-spec get_weights(binary()) -> ok | {error, binary()}.
+get_weights(NetworkId) ->
+    gen_server:call(?NETWORK_GID(NetworkId), get_weights).
+
 -spec set_weights(binary(), [float()]) -> ok | {error, binary()}.
 set_weights(NetworkId, Weights) ->
     gen_server:call(?NETWORK_GID(NetworkId), {set_weights, Weights}).
@@ -103,8 +142,6 @@ init([NetworkId, Address, Port]) ->
     {ok, Conn} = annlink_conn:connect(Address, Port),
     {ok, #state{networkId = NetworkId, conn = Conn}}.
 
-
-%% TODO: Define logging macros
 handle_call({initialize, InpSize, OutSize}, _From, #state{conn = Conn} = State) ->
     Result = annlink_conn:call(Conn, <<"initialize">>, [InpSize, OutSize]),
     {reply, Result, State};
@@ -114,12 +151,28 @@ handle_call({add_layer, Size}, _From, #state{conn = Conn} = State) ->
 handle_call({add_activation, Activation}, _From, #state{conn = Conn} = State) ->
     Result = annlink_conn:call(Conn, <<"add_activation">>, [Activation]),
     {reply, Result, State};
+handle_call({set_cost, CostFunc}, _From, #state{conn = Conn} = State) ->
+    Result = annlink_conn:call(Conn, <<"set_cost">>, [CostFunc]),
+    {reply, Result, State};
+handle_call({add_data_chunk, Args}, _From, #state{conn = Conn} = State) ->
+    Result = annlink_conn:call(Conn, <<"add_data_chunk">>, Args),
+    {reply, Result, State};
+handle_call({set_learning_rate, LearningRate}, _From, #state{conn = Conn} = State) ->
+    Result = annlink_conn:call(Conn, <<"set_learning_rate">>, [LearningRate]),
+    {reply, Result, State};
+handle_call({train, Args}, _From, #state{conn = Conn} = State) ->
+    Result = annlink_conn:call(Conn, <<"train">>, Args),
+    {reply, Result, State};
+handle_call(get_weights, _From, #state{conn = Conn} = State) ->
+    Result = annlink_conn:call(Conn, <<"get_weights">>, []),
+    {reply, Result, State};
 handle_call({set_weights, Weights}, _From, #state{conn = Conn} = State) ->
     Result = annlink_conn:call(Conn, <<"set_weights">>, [Weights]),
     {reply, Result, State};
 handle_call({predict, Set}, _From, #state{conn = Conn} = State) ->
     Result = annlink_conn:call(Conn, <<"predict">>, [Set]),
     {reply, Result, State};
+
 handle_call(Req, _From, #state{networkId = NetworkId} = State) ->
     ?Error("Invalid call request ~p received by player ~p process ~p", [NetworkId, Req, self()]),
     {reply, {error, <<"invalid request">>}, State}.
