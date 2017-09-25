@@ -15,3 +15,9 @@ logs
 _build
 rebar3.crashdump
 rebar.lock
+/include/erlang_python_constants.hrl
+/include/erlang_python_services_thrift.hrl
+/include/erlang_python_types.hrl
+/src/erlang_python_services_thrift.erl
+/src/erlang_python_types.erl
+/src_py/erlang_python
