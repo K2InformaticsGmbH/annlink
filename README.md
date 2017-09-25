@@ -9,10 +9,10 @@ git clone https://github.com/K2InformaticsGmbH/annlink.git
 
 ## Python
 
-Form the backends directory run the ``server.py`` scirpt in a python environment with access to numpy, pandas and tensorflow (Note this will block the terminal):
+Form the ``src_py`` directory run the ``server.py`` scirpt in a python environment with access to numpy, pandas and tensorflow (Note this will block the terminal):
 
 ```
-cd backends
+cd src_py
 python3 server.py
 ```
 
