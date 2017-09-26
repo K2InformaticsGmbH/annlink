@@ -21,3 +21,4 @@ rebar.lock
 /src/erlang_python_services_thrift.erl
 /src/erlang_python_types.erl
 /src_py/erlang_python
+/src_py/thrift
