@@ -95,11 +95,11 @@ add_layer(NetworkId, Size) ->
 
 -spec add_activation(binary(), atom()) -> ok | {error, binary()}.
 add_activation(NetworkId, Activation) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {add_activation, [Activation]}).
+    gen_server:call(?NETWORK_GID(NetworkId), {add_activation, [atom_to_list(Activation)]}).
 
 -spec set_cost(binary(), atom()) -> ok | {error, binary()}.
 set_cost(NetworkId, CostFunc) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {set_cost, [CostFunc]}).
+    gen_server:call(?NETWORK_GID(NetworkId), {set_cost, [atom_to_list(CostFunc)]}).
 
 -spec add_data_chunk(binary(), list(), list()) -> ok | {error, binary()}.
 add_data_chunk(NetworkId, Inputs, Labels) ->
