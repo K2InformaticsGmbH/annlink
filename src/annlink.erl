@@ -36,11 +36,6 @@
     code_change/3
 ]).
 
--record(state, {
-    networkId :: binary(),
-    conn :: term()
-}).
-
 %% Default network values.
 -define(LEARNING_RATE, 0.001).
 -define(BATCH_SIZE, 512).
@@ -71,8 +66,7 @@ create_neural_network(NetworkId, [InputSize | Rest], Activation) when is_atom(Ac
         true ->
             %% TODO: This might will crash the caller change to handle errors.
             ok = initialize(NetworkId, InputSize, lists:last(Rest)),
-            ok = add_layers(NetworkId, Rest, Activation),
-            {ok, NetworkId}
+            add_layers(NetworkId, Rest, Activation)
     end.
 
 -spec create_neural_network(binary(), [pos_integer()], [float()], atom()) -> {error, term()} | {ok, binary()}.
@@ -150,14 +144,14 @@ predict(NetworkId, Set) ->
 
 init([NetworkId, Address, Port]) ->
     %% TODO: This might will crash the caller change to handle errors.
-    {ok, Conn} = annlink_conn:connect(Address, Port),
-    {ok, #state{networkId = NetworkId, conn = Conn}}.
+    {ok, ThriftClientId} = annlink_conn:connect(Address, Port),
+    {ok, #state{networkId = NetworkId, conn = ThriftClientId}}.
 
-handle_call({Operation, Args}, _From, #state{conn = Conn} = State) when is_atom(Operation) ->
-    Result = annlink_conn:call(Conn, atom_to_binary(Operation, utf8), Args),
-    {reply, Result, State};
-handle_call(Req, _From, #state{networkId = NetworkId} = State) ->
-    ?Error("Invalid call request ~p received by player ~p process ~p", [NetworkId, Req, self()]),
+handle_call({Operation, Args}, _From, State) when is_atom(Operation) ->
+    {Result, StateNew} = annlink_conn:call(State, atom_to_binary(Operation, utf8), Args),
+    {reply, Result, StateNew};
+handle_call(Req, _From, State) ->
+    ?Error("Invalid call request ~p received by player ~p process ~p", [State, Req, self()]),
     {reply, {error, <<"invalid request">>}, State}.
 
 handle_cast(Request, #state{networkId = NetworkId} = State) ->
@@ -168,8 +162,8 @@ handle_info(Info, #state{networkId = NetworkId} = State) ->
     ?Error("Unsolicited message ~p for player ~p", [Info, NetworkId]),
     {noreply, State}.
 
-terminate(_Reason, _State) ->
-    ok.
+terminate(_Reason, State) ->
+    annlink_conn:disconnect(State).
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
@@ -184,4 +178,3 @@ add_layers(NetworkId, [Size | Rest], Activation) ->
     add_layer(NetworkId, Size),
     add_activation(NetworkId, Activation),
     add_layers(NetworkId, Rest, Activation).
-
