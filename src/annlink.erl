@@ -37,6 +37,11 @@
     code_change/3
 ]).
 
+-record(state, {
+    networkId :: binary(),
+    conn :: term()
+}).
+
 %% Default network values.
 -define(LEARNING_RATE, 0.001).
 -define(BATCH_SIZE, 512).
@@ -147,12 +152,12 @@ disconnect(NetworkId) ->
 
 init([NetworkId, Address, Port]) ->
     %% TODO: This might will crash the caller change to handle errors.
-    {ok, ThriftClientId} = annlink_conn:connect(Address, Port),
-    {ok, #state{networkId = NetworkId, conn = ThriftClientId}}.
+    {ok, Conn} = annlink_conn:connect(Address, Port),
+    {ok, #state{networkId = NetworkId, conn = Conn}}.
 
-handle_call({Operation, Args}, _From, State) when is_atom(Operation) ->
-    {Result, StateNew} = annlink_conn:call(State, Operation, Args),
-    {reply, Result, StateNew};
+handle_call({Operation, Args}, _From, #state{conn = Conn} = State) when is_atom(Operation) ->
+    {Result, ConnNew} = annlink_conn:call(Conn, Operation, Args),
+    {reply, Result, State#state{conn = ConnNew}};
 handle_call(Req, _From, State) ->
     ?Error("Invalid call request ~p received by player ~p process ~p", [State, Req, self()]),
     {reply, {error, <<"invalid request">>}, State}.
