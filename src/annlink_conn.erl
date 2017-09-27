@@ -10,10 +10,10 @@
     disconnect/1
 ]).
 
--spec call(state(), bitstring(), list()) -> thrift_return_matrix() | thrift_return_precision() | thrift_return_void().
+-spec call(state(), atom(), list()) -> thrift_return_matrix() | thrift_return_precision() | thrift_return_void().
 call(#state{conn = Conn} = State, Operation, Arguments)
-    when is_binary(Operation), is_list(Arguments) ->
-    {ConnNew, {ok, Result}} = thrift_client:call(Conn, binary_to_atom(Operation, utf8), Arguments),
+    when is_atom(Operation), is_list(Arguments) ->
+    {ConnNew, {ok, Result}} = thrift_client:call(Conn, Operation, Arguments),
     {Result, State#state{conn = ConnNew}}.
 
 -spec connect(inet:socket_address() | inet:hostname(), inet:port_number()) -> {ok, thrift_client_id()} | {error, binary()}.

@@ -27,7 +27,7 @@ readme_test() ->
 
     application:ensure_all_started(annlink),
 
-    {ok, Conn} = annlink:new_connection(?HOST, ?PORT),
+    {ok, Conn} = annlink:connect(?HOST, ?PORT),
 
     ok = annlink:create_neural_network(Conn, [2, 10, 1]),
 
@@ -44,6 +44,6 @@ readme_test() ->
     ?debugFmt("~n" ++ ": readme_test ===> remaining training results:~n~p~n", [TrainResults]),
 
     Prediction = annlink:predict(Conn, [[0, 0], [0, 1], [1, 0], [1, 1]]),
-    ?debugFmt("~n" ++ ": readme_test ===> prediction:~n~p~n", [Prediction]).
+    ?debugFmt("~n" ++ ": readme_test ===> prediction:~n~p~n", [Prediction]),
 
-%%    ok = annlink:terminate(normal, Conn).
+    annlink:disconnect(Conn).

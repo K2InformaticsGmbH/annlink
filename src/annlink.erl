@@ -5,7 +5,7 @@
 
 -export([
     start_link/3,
-    new_connection/2,
+    connect/2,
     create_neural_network/2,
     create_neural_network/3,
     create_neural_network/4,
@@ -23,7 +23,8 @@
     train/2,
     train/3,
     get_weights/1,
-    predict/2
+    predict/2,
+    disconnect/1
 ]).
 
 %% gen_server callbacks
@@ -46,8 +47,8 @@
 start_link(NetworkId, Address, Port) ->
     gen_server:start_link(?NETWORK_GID(NetworkId), ?MODULE, [NetworkId, Address, Port], []).
 
--spec new_connection(inet:socket_address() | inet:hostname(), inet:port_number()) -> {error, term()} | {ok, binary()}.
-new_connection(Address, Port) ->
+-spec connect(inet:socket_address() | inet:hostname(), inet:port_number()) -> {error, term()} | {ok, binary()}.
+connect(Address, Port) ->
     annlink_model_sup:start_network(Address, Port).
 
 %% ann helper function.
@@ -73,9 +74,7 @@ create_neural_network(NetworkId, [InputSize | Rest], Activation) when is_atom(Ac
 create_neural_network(NetworkId, Layers, Weights, Activation) when is_atom(Activation) ->
     case create_neural_network(NetworkId, Layers, Activation) of
         {error, _} = Error -> Error;
-        {ok, NetworkId} ->
-            ok = set_weights(NetworkId, Weights),
-            {ok, NetworkId}
+        ok -> set_weights(NetworkId, Weights)
     end.
 
 -spec supported_activations() -> [atom()].
@@ -95,11 +94,11 @@ add_layer(NetworkId, Size) ->
 
 -spec add_activation(binary(), atom()) -> ok | {error, binary()}.
 add_activation(NetworkId, Activation) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {add_activation, [atom_to_list(Activation)]}).
+    gen_server:call(?NETWORK_GID(NetworkId), {add_activation, [atom_to_binary(Activation, utf8)]}).
 
 -spec set_cost(binary(), atom()) -> ok | {error, binary()}.
 set_cost(NetworkId, CostFunc) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {set_cost, [atom_to_list(CostFunc)]}).
+    gen_server:call(?NETWORK_GID(NetworkId), {set_cost, [atom_to_binary(CostFunc, utf8)]}).
 
 -spec add_data_chunk(binary(), list(), list()) -> ok | {error, binary()}.
 add_data_chunk(NetworkId, Inputs, Labels) ->
@@ -132,13 +131,17 @@ get_weights(NetworkId) ->
 set_weights(NetworkId, Weights) ->
     gen_server:call(?NETWORK_GID(NetworkId), {set_weights, [Weights]}).
 
--spec predict(binary(), [number()]) -> list() | {error, binary()} .
-predict(NetworkId, [N|_]=Input) when is_number(N) ->
+-spec predict(binary(), [number()]) -> list() | {error, binary()}.
+predict(NetworkId, [N | _] = Input) when is_number(N) ->
     %% TODO: Check for errors...
     [Result] = predict(NetworkId, [Input]),
     Result;
 predict(NetworkId, Set) ->
     gen_server:call(?NETWORK_GID(NetworkId), {predict, [Set]}).
+
+-spec disconnect(binary()) -> ok.
+disconnect(NetworkId) ->
+    annlink_model_sup:close_network(NetworkId).
 
 %% Gen server related functions
 
@@ -148,7 +151,7 @@ init([NetworkId, Address, Port]) ->
     {ok, #state{networkId = NetworkId, conn = ThriftClientId}}.
 
 handle_call({Operation, Args}, _From, State) when is_atom(Operation) ->
-    {Result, StateNew} = annlink_conn:call(State, atom_to_binary(Operation, utf8), Args),
+    {Result, StateNew} = annlink_conn:call(State, Operation, Args),
     {reply, Result, StateNew};
 handle_call(Req, _From, State) ->
     ?Error("Invalid call request ~p received by player ~p process ~p", [State, Req, self()]),
@@ -162,8 +165,8 @@ handle_info(Info, #state{networkId = NetworkId} = State) ->
     ?Error("Unsolicited message ~p for player ~p", [Info, NetworkId]),
     {noreply, State}.
 
-terminate(_Reason, State) ->
-    annlink_conn:disconnect(State).
+terminate(_Reason, #state{conn = Conn}) ->
+    annlink_conn:disconnect(Conn).
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
