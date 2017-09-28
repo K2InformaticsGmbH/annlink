@@ -75,7 +75,8 @@ def main():
     num_inputs = 2
     num_outputs = 1
     learning_rate = 0.001
-    client.initialize(num_inputs,
+    client.initialize(id(client),
+                      num_inputs,
                       num_outputs,
                       learning_rate)
 
@@ -90,19 +91,22 @@ def main():
     #     gen_server:call(?NETWORK_GID(NetworkId), {add_layer, Size}).
 
     size = 10
-    client.add_layer(size)
+    client.add_layer(id(client),
+                     size)
 
     # add_activation(NetworkId, Activation) ->
     #     gen_server:call(?NETWORK_GID(NetworkId), {add_activation, Activation}).
 
     activation = "sigmoid"
-    client.add_activation(activation)
+    client.add_activation(id(client),
+                          activation)
 
     # add_layer(NetworkId, Size) ->
     #     gen_server:call(?NETWORK_GID(NetworkId), {add_layer, Size}).
 
     size = 1
-    client.add_layer(size)
+    client.add_layer(id(client),
+                     size)
 
     # --------------------------------------------------------------------------
     # > Inputs = [[0,0],[0,1],[1,0],[1,1]].
@@ -119,7 +123,10 @@ def main():
     inputs = [[0, 0], [0, 1], [1, 0], [1, 1]]
     labels = [[0], [1], [1], [0]]
     scale = []
-    client.add_data_chunk(inputs, labels, scale)
+    client.add_data_chunk(id(client),
+                          inputs,
+                          labels,
+                          scale)
 
     # --------------------------------------------------------------------------
     # > annlink:set_learning_rate(Conn, 0.05).
@@ -130,7 +137,8 @@ def main():
     #     gen_server:call(?NETWORK_GID(NetworkId), {set_learning_rate, LearningRate}).
 
     learning_rate = 0.05
-    client.set_learning_rate(learning_rate)
+    client.set_learning_rate(id(client),
+                             learning_rate)
 
     # --------------------------------------------------------------------------
     # > annlink:train(Conn).
@@ -142,7 +150,9 @@ def main():
 
     epochs = 1
     batch_size = 512
-    result = client.train(epochs, batch_size)
+    result = client.train(id(client),
+                          epochs,
+                          batch_size)
 
     if DEBUGGER.active:
         print("{} - main ({}): result from train".format(basename(__file__), result))
@@ -158,27 +168,37 @@ def main():
 
     epochs = 200
     batch_size = 512
-    result = client.train(epochs, batch_size)
+    result = client.train(id(client),
+                          epochs,
+                          batch_size)
 
     if DEBUGGER.active:
         print("{} - main ({}): result from train".format(basename(__file__), result))
 
-    result = client.train(epochs, batch_size)
+    result = client.train(id(client),
+                          epochs,
+                          batch_size)
 
     if DEBUGGER.active:
         print("{} - main ({}): result from train".format(basename(__file__), result))
 
-    result = client.train(epochs, batch_size)
+    result = client.train(id(client),
+                          epochs,
+                          batch_size)
 
     if DEBUGGER.active:
         print("{} - main ({}): result from train".format(basename(__file__), result))
 
-    result = client.train(epochs, batch_size)
+    result = client.train(id(client),
+                          epochs,
+                          batch_size)
 
     if DEBUGGER.active:
         print("{} - main ({}): result from train".format(basename(__file__), result))
 
-    result = client.train(epochs, batch_size)
+    result = client.train(id(client),
+                          epochs,
+                          batch_size)
 
     if DEBUGGER.active:
         print("{} - main ({}): result from train".format(basename(__file__), result))
@@ -194,10 +214,13 @@ def main():
     #     gen_server:call(?NETWORK_GID(NetworkId), {predict, Set}).
 
     data = [[0, 0], [0, 1], [1, 0], [1, 1]]
-    result = client.predict(data)
+    result = client.predict(id(client),
+                            data)
 
     if DEBUGGER.active:
         print("{} - main ({}): result from predict".format(basename(__file__), result))
+
+    client.terminate_model(id(client)),
 
     # --------------------------------------------------------------------------
     # Terminate client

@@ -22,26 +22,39 @@ DEBUGGER = Dbg()
 
 class PythonServicesHandler:
     def __init__(self):
+        self.clients = dict()
         self.model = None
 
+
     def add_activation(self,
+                       client_id,
                        activation):
         if DEBUGGER.active:
             print(
-                "{} - add_activation (activation={}): Start".format(basename(__file__), activation))
+                "{} - client {} - add_activation (activation={}): Start".format(basename(__file__),
+                                                                                client_id,
+                                                                                activation))
+
+        self.model = self.clients[client_id]
 
         self.model.add_activation(activation)
 
+        self.clients[client_id] = self.model
+
+
     def add_data_chunk(self,
+                       client_id,
                        data_chunk,
                        labels_chunk,
                        scale_chunk):
         if DEBUGGER.active:
-            print(("{} - add_data_chunk (data_chunk={}, labels_chunk={}, "
-                   + "scale_chunk={}): Start").format(
-                basename(__file__), data_chunk, labels_chunk, scale_chunk))
+            print(("{} - client {} - add_data_chunk (data_chunk={}, labels_chunk={}, "
+                   + "scale_chunk={}): Start").format(basename(__file__), client_id, data_chunk,
+                                                      labels_chunk, scale_chunk))
 
-        if scale_chunk == []:
+        self.model = self.clients[client_id]
+
+        if not scale_chunk:
             scale = None
         else:
             scale = scale_chunk
@@ -50,72 +63,149 @@ class PythonServicesHandler:
                                   labels_chunk,
                                   scale)
 
+        self.clients[client_id] = self.model
+
+
     def add_layer(self,
+                  client_id,
                   layer_outputs):
         if DEBUGGER.active:
-            print("{} - add_layer (layer_outputs={}): Start".format(basename(__file__),
-                                                                    layer_outputs))
+            print("{} - client {} - add_layer (layer_outputs={}): Start".format(basename(__file__),
+                                                                                client_id,
+                                                                                layer_outputs))
+
+        self.model = self.clients[client_id]
 
         self.model.add_layer(layer_outputs)
 
-    def get_weights(self):
+        self.clients[client_id] = self.model
+
+
+    def get_weights(self,
+                    client_id, ):
         if DEBUGGER.active:
-            print("{} - get_weights (): Start".format(basename(__file__)))
+            print("{} - client {} - get_weights (): Start".format(basename(__file__), client_id)),
+
+        self.model = self.clients[client_id]
 
         return self.model.get_weights()
 
+
     def initialize(self,
+                   client_id,
                    num_inputs,
                    num_outputs,
                    learning_rate):
         if DEBUGGER.active:
-            print("{} - initialize (num_inputs={}, num_outputs={}, learning_rate={}): Start".format(
-                basename(__file__), num_inputs, num_outputs, learning_rate))
+            print(
+                (
+                    "{} - client {} - initialize (num_inputs={}, " +
+                    "num_outputs={}, learning_rate={}): Start").format(basename(__file__),
+                                                                       client_id,
+                                                                       num_inputs, num_outputs,
+                                                                       learning_rate))
 
         self.model = Model()
         self.model.initialize(num_inputs,
                               num_outputs,
                               learning_rate)
 
+        self.clients[client_id] = self.model
+
+
     def predict(self,
+                client_id,
                 data):
         if DEBUGGER.active:
-            print("{} - predict (data={}): Start".format(basename(__file__), data))
+            print("{} - client {} - predict (data={}): Start".format(basename(__file__), client_id,
+                                                                     data))
 
-        return self.model.predict(data)
+        self.model = self.clients[client_id]
+
+        prediction = self.model.predict(data)
+
+        self.clients[client_id] = self.model
+
+        return prediction
+
 
     def set_cost(self,
+                 client_id,
                  cost):
         if DEBUGGER.active:
-            print("{} - set_cost (cost={}): Start".format(basename(__file__), cost))
+            print("{} - client {} - set_cost (cost={}): Start".format(basename(__file__), client_id,
+                                                                      cost))
+
+        self.model = self.clients[client_id]
 
         self.model.set_cost(cost)
 
+        self.clients[client_id] = self.model
+
+
     def set_learning_rate(self,
+                          client_id,
                           learning_rate):
         if DEBUGGER.active:
-            print("{} - set_learning_rate (learning_rate={}): Start".format(basename(__file__),
-                                                                            learning_rate))
+            print("{} - client {} - set_learning_rate (learning_rate={}): Start".format(
+                basename(__file__),
+                client_id,
+                learning_rate))
+
+        self.model = self.clients[client_id]
 
         self.model.set_learning_rate(learning_rate)
 
+        self.clients[client_id] = self.model
+
+
     def set_weights(self,
+                    client_id,
                     new_weights):
         if DEBUGGER.active:
             print(
-                "{} - set_weights (new_weights={}): Start".format(basename(__file__), new_weights))
+                "{} - client {} - set_weights (new_weights={}): Start".format(basename(__file__),
+                                                                              client_id,
+                                                                              new_weights))
+
+        self.model = self.clients[client_id]
 
         self.model.set_weights(new_weights)
 
+        self.clients[client_id] = self.model
+
+
+    def terminate_model(self,
+                        client_id):
+        if DEBUGGER.active:
+            print(
+                "{} - client {} - terminate_model (): Start".format(basename(__file__), client_id))
+
+        del self.clients[client_id]
+
+        if DEBUGGER.active:
+            print(
+                "{} - client {} - terminate_model (): active models {}".format(basename(__file__),
+                                                                               client_id,
+                                                                               len(self.clients)))
+
+
     def train(self,
+              client_id,
               epochs,
               batch_size):
         if DEBUGGER.active:
-            print("{} - train (epochs={}, batch_size={}): Start".format(basename(__file__), epochs,
-                                                                        batch_size))
+            print("{} - client {} - train (epochs={}, batch_size={}): Start".format(
+                basename(__file__), client_id, epochs, batch_size))
 
-        return self.model.train(epochs,
-                                batch_size)
+        self.model = self.clients[client_id]
+
+        result = self.model.train(epochs,
+                                  batch_size)
+
+        self.clients[client_id] = self.model
+
+        return result
 
 
 # --------------------------------------------------------------------------

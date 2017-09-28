@@ -40,14 +40,7 @@
 %% dialyzer tyoe definitions.
 %%------------------------------------------------------------------------------
 
+-type client_id() :: integer().
 -type connection_id() :: {atom(), atom(), tuple(), pos_integer()}.
 -type matrix() :: [[number()]].
 -type network_id() :: binary().
-
-%%-type standard_error() :: {error, term()}.
-%%-type thrift_return_matrix() :: {matrix(), network_id()}.
-%%-type thrift_return_precision() :: {float(), network_id()}.
-%%-type thrift_return_precision_error() :: thrift_return_precision() | standard_error().
-%%-type thrift_return_void() :: {ok, network_id()}.
-%%-type thrift_return_void_error() :: thrift_return_void() | standard_error().
-

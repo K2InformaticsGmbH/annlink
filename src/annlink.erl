@@ -6,25 +6,26 @@
 -export([
     start_link/3,
     connect/2,
-    create_neural_network/2,
     create_neural_network/3,
     create_neural_network/4,
+    create_neural_network/5,
     supported_activations/0,
-    initialize/3,
     initialize/4,
-    add_layer/2,
-    add_activation/2,
-    set_cost/2,
-    add_data_chunk/3,
+    initialize/5,
+    add_layer/3,
+    add_activation/3,
+    set_cost/3,
     add_data_chunk/4,
-    set_learning_rate/2,
-    set_weights/2,
-    train/1,
+    add_data_chunk/5,
+    set_learning_rate/3,
+    set_weights/3,
     train/2,
     train/3,
-    get_weights/1,
-    predict/2,
-    disconnect/1
+    train/4,
+    get_weights/2,
+    predict/3,
+    disconnect/1,
+    terminate_model/2
 ]).
 
 %% gen_server callbacks
@@ -57,92 +58,97 @@ connect(Address, Port) ->
     annlink_model_sup:start_network(Address, Port).
 
 %% ann helper function.
--spec create_neural_network(network_id(), [pos_integer()]) -> ok.
-create_neural_network(NetworkId, Layers) ->
-    create_neural_network(NetworkId, Layers, sigmoid).
+-spec create_neural_network(network_id(), client_id(), [pos_integer()]) -> ok.
+create_neural_network(NetworkId, ClientId, Layers) ->
+    create_neural_network(NetworkId, ClientId, Layers, sigmoid).
 
--spec create_neural_network(network_id(), [pos_integer()], atom() | matrix()) -> {error, term()} | ok.
-create_neural_network(_NetworkId, Layers, _) when length(Layers) < 3 ->
+-spec create_neural_network(network_id(), client_id(), [pos_integer()], atom() | matrix()) -> {error, term()} | ok.
+create_neural_network(_NetworkId, _ClientId, Layers, _) when length(Layers) < 3 ->
     {error, <<"Minimum number of layers is 3">>};
-create_neural_network(NetworkId, Layers, Weights) when is_list(Weights) ->
-    create_neural_network(NetworkId, Layers, Weights, sigmoid);
-create_neural_network(NetworkId, [InputSize | Rest], Activation) when is_atom(Activation) ->
+create_neural_network(NetworkId, ClientId, Layers, Weights) when is_list(Weights) ->
+    create_neural_network(NetworkId, ClientId, Layers, Weights, sigmoid);
+create_neural_network(NetworkId, ClientId, [InputSize | Rest], Activation) when is_atom(Activation) ->
     case lists:member(Activation, supported_activations()) of
         false -> {error, <<"Activation function not supported">>};
         true ->
             %% TODO: This might will crash the caller change to handle errors.
-            ok = initialize(NetworkId, InputSize, lists:last(Rest)),
-            add_layers(NetworkId, Rest, Activation)
+            ok = initialize(NetworkId, ClientId, InputSize, lists:last(Rest)),
+            add_layers(NetworkId, ClientId, Rest, Activation)
     end.
 
--spec create_neural_network(network_id(), [pos_integer()], matrix(), atom()) -> {error, term()} | ok.
-create_neural_network(NetworkId, Layers, Weights, Activation) when is_atom(Activation) ->
-    case create_neural_network(NetworkId, Layers, Activation) of
+-spec create_neural_network(network_id(), client_id(), [pos_integer()], matrix(), atom()) -> {error, term()} | ok.
+create_neural_network(NetworkId, ClientId, Layers, Weights, Activation) when is_atom(Activation) ->
+    case create_neural_network(NetworkId, ClientId, Layers, Activation) of
         {error, _} = Error -> Error;
-        ok -> set_weights(NetworkId, Weights)
+        ok -> set_weights(NetworkId, ClientId, Weights)
     end.
 
 -spec supported_activations() -> [atom()].
 supported_activations() -> [relu, sigmoid, softsign, tanh, tanh1].
 
--spec initialize(network_id(), pos_integer(), pos_integer()) -> ok.
-initialize(NetworkId, InpSize, OutSize) ->
-    initialize(NetworkId, InpSize, OutSize, ?LEARNING_RATE).
+-spec initialize(network_id(), client_id(), pos_integer(), pos_integer()) -> ok.
+initialize(NetworkId, ClientId, InpSize, OutSize) ->
+    initialize(NetworkId, ClientId, InpSize, OutSize, ?LEARNING_RATE).
 
--spec initialize(network_id(), pos_integer(), pos_integer(), float()) -> ok.
-initialize(NetworkId, InpSize, OutSize, LearningRate) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {initialize, [InpSize, OutSize, LearningRate]}).
+-spec initialize(network_id(), client_id(), pos_integer(), pos_integer(), float()) -> ok.
+initialize(NetworkId, ClientId, InpSize, OutSize, LearningRate) ->
+    gen_server:call(?NETWORK_GID(NetworkId), {initialize, [ClientId, InpSize, OutSize, LearningRate]}).
 
--spec add_layer(binary(), pos_integer()) -> ok | {error, binary()}.
-add_layer(NetworkId, Size) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {add_layer, [Size]}).
+-spec add_layer(network_id(), client_id(), pos_integer()) -> ok | {error, binary()}.
+add_layer(NetworkId, ClientId, Size) ->
+    gen_server:call(?NETWORK_GID(NetworkId), {add_layer, [ClientId, Size]}).
 
--spec add_activation(network_id(), atom()) -> ok.
-add_activation(NetworkId, Activation) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {add_activation, [atom_to_binary(Activation, utf8)]}).
+-spec add_activation(network_id(), client_id(), atom()) -> ok.
+add_activation(NetworkId, ClientId, Activation) ->
+    gen_server:call(?NETWORK_GID(NetworkId), {add_activation, [ClientId, atom_to_binary(Activation, utf8)]}).
 
--spec set_cost(network_id(), atom()) -> ok.
-set_cost(NetworkId, CostFunc) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {set_cost, [atom_to_binary(CostFunc, utf8)]}).
+-spec set_cost(network_id(), client_id(), atom()) -> ok.
+set_cost(NetworkId, ClientId, CostFunc) ->
+    gen_server:call(?NETWORK_GID(NetworkId), {set_cost, [ClientId, atom_to_binary(CostFunc, utf8)]}).
 
--spec add_data_chunk(network_id(), matrix(), matrix()) -> ok.
-add_data_chunk(NetworkId, Inputs, Labels) ->
-    add_data_chunk(NetworkId, Inputs, Labels, ?SCALE).
+-spec add_data_chunk(network_id(), client_id(), matrix(), matrix()) -> ok.
+add_data_chunk(NetworkId, ClientId, Inputs, Labels) ->
+    add_data_chunk(NetworkId, ClientId, Inputs, Labels, ?SCALE).
 
--spec add_data_chunk(network_id(), matrix(), matrix(), matrix()) -> ok.
-add_data_chunk(NetworkId, Inputs, Labels, Scale) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {add_data_chunk, [Inputs, Labels, Scale]}).
+-spec add_data_chunk(network_id(), client_id(), matrix(), matrix(), matrix()) -> ok.
+add_data_chunk(NetworkId, ClientId, Inputs, Labels, Scale) ->
+    gen_server:call(?NETWORK_GID(NetworkId), {add_data_chunk, [ClientId, Inputs, Labels, Scale]}).
 
--spec set_learning_rate(network_id(), float()) -> ok.
-set_learning_rate(NetworkId, LearningRate) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {set_learning_rate, [LearningRate]}).
+-spec set_learning_rate(network_id(), client_id(), float()) -> ok.
+set_learning_rate(NetworkId, ClientId, LearningRate) ->
+    gen_server:call(?NETWORK_GID(NetworkId), {set_learning_rate, [ClientId, LearningRate]}).
 
--spec train(network_id()) -> float().
-train(NetworkId) -> train(NetworkId, ?EPOCHS).
+-spec train(network_id(), client_id()) -> float().
+train(NetworkId, ClientId) ->
+    train(NetworkId, ClientId, ?EPOCHS).
 
--spec train(network_id(), pos_integer()) -> float().
-train(NetworkId, Epochs) when is_integer(Epochs) ->
-    train(NetworkId, Epochs, ?BATCH_SIZE).
+-spec train(network_id(), client_id(), pos_integer()) -> float().
+train(NetworkId, ClientId, Epochs) when is_integer(Epochs) ->
+    train(NetworkId, ClientId, Epochs, ?BATCH_SIZE).
 
--spec train(binary(), pos_integer(), pos_integer()) -> float().
-train(NetworkId, Epochs, BatchSize) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {train, [Epochs, BatchSize]}).
+-spec train(binary(), client_id(), pos_integer(), pos_integer()) -> float().
+train(NetworkId, ClientId, Epochs, BatchSize) ->
+    gen_server:call(?NETWORK_GID(NetworkId), {train, [ClientId, Epochs, BatchSize]}).
 
--spec get_weights(network_id()) -> matrix().
-get_weights(NetworkId) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {get_weights, []}).
+-spec get_weights(network_id(), client_id()) -> matrix().
+get_weights(NetworkId, ClientId) ->
+    gen_server:call(?NETWORK_GID(NetworkId), {get_weights, [ClientId]}).
 
--spec set_weights(network_id(), matrix()) -> ok.
-set_weights(NetworkId, Weights) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {set_weights, [Weights]}).
+-spec set_weights(network_id(), client_id(), matrix()) -> ok.
+set_weights(NetworkId, ClientId, Weights) ->
+    gen_server:call(?NETWORK_GID(NetworkId), {set_weights, [ClientId, Weights]}).
 
--spec predict(network_id(), matrix()) -> matrix().
-predict(NetworkId, [N | _] = Input) when is_number(N) ->
+-spec predict(network_id(), client_id(), matrix()) -> matrix().
+predict(NetworkId, ClientId, [N | _] = Input) when is_number(N) ->
     %% TODO: Check for errors...
-    [Result] = predict(NetworkId, [Input]),
+    [Result] = predict(NetworkId, ClientId, [Input]),
     Result;
-predict(NetworkId, Set) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {predict, [Set]}).
+predict(NetworkId, ClientId, Set) ->
+    gen_server:call(?NETWORK_GID(NetworkId), {predict, [ClientId, Set]}).
+
+-spec terminate_model(network_id(), client_id()) -> ok.
+terminate_model(NetworkId, ClientId) ->
+    gen_server:call(?NETWORK_GID(NetworkId), {terminate_model, [ClientId]}).
 
 -spec disconnect(network_id()) -> ok.
 disconnect(NetworkId) ->
@@ -180,10 +186,10 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal helper functions
 
 %% ann helper function.
--spec add_layers(network_id(), [pos_integer()], atom()) -> ok.
-add_layers(NetworkId, [Size], _Activation) ->
-    add_layer(NetworkId, Size);
-add_layers(NetworkId, [Size | Rest], Activation) ->
-    add_layer(NetworkId, Size),
-    add_activation(NetworkId, Activation),
-    add_layers(NetworkId, Rest, Activation).
+-spec add_layers(network_id(), client_id(), [pos_integer()], atom()) -> ok.
+add_layers(NetworkId, ClientId, [Size], _Activation) ->
+    add_layer(NetworkId, ClientId, Size);
+add_layers(NetworkId, ClientId, [Size | Rest], Activation) ->
+    add_layer(NetworkId, ClientId, Size),
+    add_activation(NetworkId, ClientId, Activation),
+    add_layers(NetworkId, ClientId, Rest, Activation).
