@@ -14,7 +14,6 @@ Link between eralgn applications and deep learning frameworks.
 8. git clone https://github.com/apache/thrift
 9. cd thrift/lib/py
 10. python setup.py install
-11. copy the whole directory thrift\lib\py\build\lib.win-amd64-3.6\thrift to directory annlink\src_py 
 ```
 
 ## Python
