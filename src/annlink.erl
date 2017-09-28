@@ -48,6 +48,7 @@
 -define(BATCH_SIZE, 512).
 -define(EPOCHS, 1).
 -define(SCALE, []).
+-define(TIMEOUT, 60000).
 
 -spec start_link(network_id(), inet:socket_address() | inet:hostname(), inet:port_number()) -> {error, term()} | ignore | {ok, pid()}.
 start_link(NetworkId, Address, Port) ->
@@ -92,19 +93,19 @@ initialize(NetworkId, ClientId, InpSize, OutSize) ->
 
 -spec initialize(network_id(), client_id(), pos_integer(), pos_integer(), float()) -> ok.
 initialize(NetworkId, ClientId, InpSize, OutSize, LearningRate) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {initialize, [ClientId, InpSize, OutSize, LearningRate]}).
+    gen_server:call(?NETWORK_GID(NetworkId), {initialize, [ClientId, InpSize, OutSize, LearningRate]}, ?TIMEOUT).
 
 -spec add_layer(network_id(), client_id(), pos_integer()) -> ok | {error, binary()}.
 add_layer(NetworkId, ClientId, Size) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {add_layer, [ClientId, Size]}).
+    gen_server:call(?NETWORK_GID(NetworkId), {add_layer, [ClientId, Size]}, ?TIMEOUT).
 
 -spec add_activation(network_id(), client_id(), atom()) -> ok.
 add_activation(NetworkId, ClientId, Activation) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {add_activation, [ClientId, atom_to_binary(Activation, utf8)]}).
+    gen_server:call(?NETWORK_GID(NetworkId), {add_activation, [ClientId, atom_to_binary(Activation, utf8)]}, ?TIMEOUT).
 
 -spec set_cost(network_id(), client_id(), atom()) -> ok.
 set_cost(NetworkId, ClientId, CostFunc) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {set_cost, [ClientId, atom_to_binary(CostFunc, utf8)]}).
+    gen_server:call(?NETWORK_GID(NetworkId), {set_cost, [ClientId, atom_to_binary(CostFunc, utf8)]}, ?TIMEOUT).
 
 -spec add_data_chunk(network_id(), client_id(), matrix(), matrix()) -> ok.
 add_data_chunk(NetworkId, ClientId, Inputs, Labels) ->
@@ -112,11 +113,11 @@ add_data_chunk(NetworkId, ClientId, Inputs, Labels) ->
 
 -spec add_data_chunk(network_id(), client_id(), matrix(), matrix(), matrix()) -> ok.
 add_data_chunk(NetworkId, ClientId, Inputs, Labels, Scale) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {add_data_chunk, [ClientId, Inputs, Labels, Scale]}).
+    gen_server:call(?NETWORK_GID(NetworkId), {add_data_chunk, [ClientId, Inputs, Labels, Scale]}, ?TIMEOUT).
 
 -spec set_learning_rate(network_id(), client_id(), float()) -> ok.
 set_learning_rate(NetworkId, ClientId, LearningRate) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {set_learning_rate, [ClientId, LearningRate]}).
+    gen_server:call(?NETWORK_GID(NetworkId), {set_learning_rate, [ClientId, LearningRate]}, ?TIMEOUT).
 
 -spec train(network_id(), client_id()) -> float().
 train(NetworkId, ClientId) ->
@@ -128,15 +129,15 @@ train(NetworkId, ClientId, Epochs) when is_integer(Epochs) ->
 
 -spec train(binary(), client_id(), pos_integer(), pos_integer()) -> float().
 train(NetworkId, ClientId, Epochs, BatchSize) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {train, [ClientId, Epochs, BatchSize]}).
+    gen_server:call(?NETWORK_GID(NetworkId), {train, [ClientId, Epochs, BatchSize]}, ?TIMEOUT).
 
 -spec get_weights(network_id(), client_id()) -> matrix().
 get_weights(NetworkId, ClientId) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {get_weights, [ClientId]}).
+    gen_server:call(?NETWORK_GID(NetworkId), {get_weights, [ClientId]}, ?TIMEOUT).
 
 -spec set_weights(network_id(), client_id(), matrix()) -> ok.
 set_weights(NetworkId, ClientId, Weights) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {set_weights, [ClientId, Weights]}).
+    gen_server:call(?NETWORK_GID(NetworkId), {set_weights, [ClientId, Weights]}, ?TIMEOUT).
 
 -spec predict(network_id(), client_id(), matrix()) -> matrix().
 predict(NetworkId, ClientId, [N | _] = Input) when is_number(N) ->
@@ -144,11 +145,11 @@ predict(NetworkId, ClientId, [N | _] = Input) when is_number(N) ->
     [Result] = predict(NetworkId, ClientId, [Input]),
     Result;
 predict(NetworkId, ClientId, Set) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {predict, [ClientId, Set]}).
+    gen_server:call(?NETWORK_GID(NetworkId), {predict, [ClientId, Set]}, ?TIMEOUT).
 
 -spec terminate_model(network_id(), client_id()) -> ok.
 terminate_model(NetworkId, ClientId) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {terminate_model, [ClientId]}).
+    gen_server:call(?NETWORK_GID(NetworkId), {terminate_model, [ClientId]}, ?TIMEOUT).
 
 -spec disconnect(network_id()) -> ok.
 disconnect(NetworkId) ->
