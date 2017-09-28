@@ -15,6 +15,7 @@
 %% ===================================================================
 %% API functions
 %% ===================================================================
+
 -spec start_link() -> ignore | {error, term()} | {ok, pid()}.
 start_link() ->
     ?Info("~p starting...~n", [?MODULE]),
@@ -27,7 +28,7 @@ start_link() ->
             Error
     end.
 
--spec start_network(inet:socket_address() | inet:hostname(), inet:port_number()) -> {error, term()} | {ok, binary()}.
+-spec start_network(inet:socket_address() | inet:hostname(), inet:port_number()) -> {error, term()} | {ok, network_id()}.
 start_network(Address, Port) ->
     NetworkId = base64:encode(crypto:strong_rand_bytes(24)),
     case supervisor:start_child(?MODULE, [NetworkId, Address, Port]) of
@@ -35,7 +36,7 @@ start_network(Address, Port) ->
         {ok, _NetworkPid} -> {ok, NetworkId}
     end.
 
--spec close_network(binary() | pid()) -> ok | {error, not_found | simple_one_for_one}.
+-spec close_network(network_id()) -> ok | {error, not_found | simple_one_for_one}.
 close_network(NetworkPid) when is_pid(NetworkPid) ->
     supervisor:terminate_child(?MODULE, NetworkPid);
 close_network(NetworkId) ->
@@ -45,7 +46,7 @@ close_network(NetworkId) ->
         Pid -> supervisor:terminate_child(?MODULE, Pid)
     end.
 
--spec list_networks() -> [pid()].
+-spec list_networks() -> [restarting | undefined | pid()].
 list_networks() ->
     [Pid || {undefined, Pid, worker, _} <- supervisor:which_children(?MODULE)].
 
