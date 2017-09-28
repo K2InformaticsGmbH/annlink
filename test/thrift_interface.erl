@@ -31,6 +31,7 @@ special_test() ->
 
     {ok, Conn} = annlink:connect(?HOST, ?PORT),
 
+    timer:sleep(1),
     ClientId = erlang:monotonic_time(nanosecond),
     ?debugFmt("~n" ++ ?MODULE_STRING ++ ": readme_test() ===> ClientId=~p ~n", [ClientId]),
 
@@ -98,6 +99,7 @@ basic_test() ->
 
     {ok, Conn} = annlink:connect(?HOST, ?PORT),
 
+    timer:sleep(1),
     ClientId = erlang:monotonic_time(nanosecond),
     ?debugFmt("~n" ++ ?MODULE_STRING ++ ": readme_test() ===> ClientId=~p ~n", [ClientId]),
 

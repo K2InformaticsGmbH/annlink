@@ -31,6 +31,7 @@ readme_test() ->
 
     ?debugFmt("~n" ++ ?MODULE_STRING ++ ": readme_test() ===> Conn=~p ~n", [Conn]),
 
+    timer:sleep(1),
     ClientId = erlang:monotonic_time(nanosecond),
     ?debugFmt("~n" ++ ?MODULE_STRING ++ ": readme_test() ===> ClientId=~p ~n", [ClientId]),
 
