@@ -46,6 +46,7 @@
 -define(BATCH_SIZE, 512).
 -define(EPOCHS, 1).
 -define(SCALE, null).
+-define(TIMEOUT, 60000).
 
 -spec start_link(binary(), inet:socket_address() | inet:hostname(), inet:port_number()) -> {ok, pid()} | {error, term()}.
 start_link(NetworkId, Address, Port) ->
@@ -93,19 +94,19 @@ initialize(NetworkId, InpSize, OutSize) ->
 
 -spec initialize(binary(), pos_integer(), pos_integer(), float()) -> ok | {error, binary()}.
 initialize(NetworkId, InpSize, OutSize, LearningRate) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {initialize, [InpSize, OutSize, LearningRate]}).
+    gen_server:call(?NETWORK_GID(NetworkId), {initialize, [InpSize, OutSize, LearningRate]}, ?TIMEOUT).
 
 -spec add_layer(binary(), pos_integer()) -> ok | {error, binary()}.
 add_layer(NetworkId, Size) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {add_layer, [Size]}).
+    gen_server:call(?NETWORK_GID(NetworkId), {add_layer, [Size]}, ?TIMEOUT).
 
 -spec add_activation(binary(), atom()) -> ok | {error, binary()}.
 add_activation(NetworkId, Activation) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {add_activation, [Activation]}).
+    gen_server:call(?NETWORK_GID(NetworkId), {add_activation, [Activation]}, ?TIMEOUT).
 
 -spec set_cost(binary(), atom()) -> ok | {error, binary()}.
 set_cost(NetworkId, CostFunc) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {set_cost, [CostFunc]}).
+    gen_server:call(?NETWORK_GID(NetworkId), {set_cost, [CostFunc]}, ?TIMEOUT).
 
 -spec add_data_chunk(binary(), list(), list()) -> ok | {error, binary()}.
 add_data_chunk(NetworkId, Inputs, Labels) ->
@@ -113,11 +114,11 @@ add_data_chunk(NetworkId, Inputs, Labels) ->
 
 -spec add_data_chunk(binary(), list(), list(), list()) -> ok | {error, binary()}.
 add_data_chunk(NetworkId, Inputs, Labels, Scale) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {add_data_chunk, [Inputs, Labels, Scale]}).
+    gen_server:call(?NETWORK_GID(NetworkId), {add_data_chunk, [Inputs, Labels, Scale]}, ?TIMEOUT).
 
 -spec set_learning_rate(binary(), float()) -> ok | {error, binary()}.
 set_learning_rate(NetworkId, LearningRate) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {set_learning_rate, [LearningRate]}).
+    gen_server:call(?NETWORK_GID(NetworkId), {set_learning_rate, [LearningRate]}, ?TIMEOUT).
 
 -spec train(binary()) -> ok | {error, binary()}.
 train(NetworkId) -> train(NetworkId, ?EPOCHS).
@@ -128,15 +129,15 @@ train(NetworkId, Epochs) when is_integer(Epochs) ->
 
 -spec train(binary(), pos_integer(), pos_integer()) -> ok | {error, binary()}.
 train(NetworkId, Epochs, BatchSize) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {train, [Epochs, BatchSize]}).
+    gen_server:call(?NETWORK_GID(NetworkId), {train, [Epochs, BatchSize]}, ?TIMEOUT).
 
 -spec get_weights(binary()) -> ok | {error, binary()}.
 get_weights(NetworkId) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {get_weights, []}).
+    gen_server:call(?NETWORK_GID(NetworkId), {get_weights, []}, ?TIMEOUT).
 
 -spec set_weights(binary(), [float()]) -> ok | {error, binary()}.
 set_weights(NetworkId, Weights) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {set_weights, [Weights]}).
+    gen_server:call(?NETWORK_GID(NetworkId), {set_weights, [Weights]}, ?TIMEOUT).
 
 -spec predict(binary(), [number()]) -> list() | {error, binary()} .
 predict(NetworkId, [N|_]=Input) when is_number(N) ->
@@ -144,7 +145,7 @@ predict(NetworkId, [N|_]=Input) when is_number(N) ->
     [Result] = predict(NetworkId, [Input]),
     Result;
 predict(NetworkId, Set) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {predict, [Set]}).
+    gen_server:call(?NETWORK_GID(NetworkId), {predict, [Set]}, ?TIMEOUT).
 
 %% Gen server related functions
 
