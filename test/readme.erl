@@ -9,14 +9,9 @@
 
 -module(readme).
 
+-include("annlink.hrl").
+
 -include_lib("eunit/include/eunit.hrl").
-
-%%------------------------------------------------------------------------------
-%% Default values.
-%%------------------------------------------------------------------------------
-
--define(HOST, '127.0.0.1').
--define(PORT, 8778).
 
 %%--------------------------------------------------------------------
 %% TEST CASES: README.md
@@ -27,7 +22,10 @@ readme_test() ->
 
     application:ensure_all_started(annlink),
 
-    {ok, Conn} = annlink:connect(?HOST, ?PORT),
+    Host = os:getenv("ANNLINK_HOST", "127.0.0.1"),
+    Port = list_to_integer(os:getenv("ANNLINK_PORT", "8778")),
+
+    {ok, Conn} = annlink:connect(Host, Port),
 
     ?debugFmt("~n" ++ ?MODULE_STRING ++ ": readme_test() ===> Conn=~p ~n", [Conn]),
 

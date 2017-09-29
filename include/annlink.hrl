@@ -37,7 +37,7 @@
 -endif.
 
 %%------------------------------------------------------------------------------
-%% dialyzer tyoe definitions.
+%% Dialyzer type definitions.
 %%------------------------------------------------------------------------------
 
 -type connection_id() :: {atom(), atom(), tuple(), pos_integer()}.

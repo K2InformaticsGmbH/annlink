@@ -1,7 +1,7 @@
-import configparser
 from os.path import basename
 
 from erlang_python import ErlangPythonServices
+from helper import get_host, get_port
 from thrift import Thrift
 from thrift.protocol import TBinaryProtocol
 from thrift.transport import TSocket
@@ -23,16 +23,8 @@ def main():
     # Read network parameters
     # --------------------------------------------------------------------------
 
-    config = configparser.ConfigParser()
-    config.read("server.ini")
-    try:
-        host = config["NETWORK ADDRESS"]["host"]
-    except KeyError:
-        host = "127.0.0.1"
-    try:
-        port = int(config["NETWORK ADDRESS"]["port"])
-    except KeyError:
-        port = 8778
+    host = get_host()
+    port = get_port()
 
     print(("{} - main (): This client will connect to a server with " +
            "ip address {} and port number {}").format(basename(__file__), host, port))

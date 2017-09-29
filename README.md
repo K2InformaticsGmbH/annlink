@@ -51,6 +51,14 @@ Then start from the root directory (directory ``annlink``):
 rebar3 eunit
 ```
 
+## Server address
+
+The following environment variables can be used to control the server address:
+
+- ANNLINK_HOST : host address with default value '127.0.0.1'
+- ANNLINK_PORT : port number with default value 8778
+
+
 ## XOR Trainig
 
 The simplest network is a XOR test, provided the server script is running locally:

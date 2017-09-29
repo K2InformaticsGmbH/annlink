@@ -9,6 +9,8 @@
 
 -module(thrift_interface).
 
+-include("annlink.hrl").
+
 -include_lib("eunit/include/eunit.hrl").
 
 %%------------------------------------------------------------------------------
@@ -17,19 +19,68 @@
 
 -define(ACTIVATION, sigmoid).
 -define(COST_FUNCTION, scaled).
--define(HOST, '127.0.0.1').
 -define(INPUT_SIZE, 2).
 -define(LEARNING_RATE, 0.05).
 -define(OUTPUT_SIZE, 1).
--define(PORT, 8778).
+
+%%--------------------------------------------------------------------
+%% Basic Apache Thrift interface tests.
+%%--------------------------------------------------------------------
+
+basic_test() ->
+    ?debugFmt("~n" ++ ?MODULE_STRING ++ ": basic_test() ===> Start ~n", []),
+
+    application:ensure_all_started(annlink),
+
+    Host = os:getenv("ANNLINK_HOST", "127.0.0.1"),
+    Port = list_to_integer(os:getenv("ANNLINK_PORT", "8778")),
+
+    {ok, Conn} = annlink:connect(Host, Port),
+
+    ClientId = annlink:initialize_model(Conn, ?INPUT_SIZE, ?OUTPUT_SIZE, ?LEARNING_RATE),
+
+    ok = annlink:add_layer(Conn, ClientId, 10),
+
+    ok = annlink:add_layer(Conn, ClientId, ?OUTPUT_SIZE),
+
+    ok = annlink:add_activation(Conn, ClientId, ?ACTIVATION),
+
+    Inputs = [[0, 0], [0, 1], [1, 0], [1, 1]],
+    Labels = [[0], [1], [1], [0]],
+    ok = annlink:add_data_chunk(Conn, ClientId, Inputs, Labels, []),
+
+    ok = annlink:set_learning_rate(Conn, ClientId, ?LEARNING_RATE),
+
+    TrainResult = annlink:train(Conn, ClientId),
+    ?debugFmt(?MODULE_STRING ++ ":basic_test : model ~p ===> training result #1:~n~p~n", [ClientId, TrainResult]),
+
+    ok = annlink:set_cost(Conn, ClientId, ?COST_FUNCTION),
+
+    Weights = annlink:get_weights(Conn, ClientId),
+    ?debugFmt(?MODULE_STRING ++ ":basic_test : model ~p ===> weights:~n~p~n", [ClientId, Weights]),
+
+    ok = annlink:set_weights(Conn, ClientId, Weights),
+
+    Prediction = annlink:predict(Conn, ClientId, [[0, 0], [0, 1], [1, 0], [1, 1]]),
+    ?debugFmt(?MODULE_STRING ++ ":basic_test : model ~p ===> prediction:~n~p~n", [ClientId, Prediction]),
+
+    ok = annlink:terminate_model(Conn, ClientId),
+
+    annlink:disconnect(Conn).
 
 %%--------------------------------------------------------------------
 %% ANN helper function tests.
 %%--------------------------------------------------------------------
 
 special_test() ->
+    ?debugFmt("~n" ++ ?MODULE_STRING ++ ": special_test() ===> Start ~n", []),
 
-    {ok, Conn} = annlink:connect(?HOST, ?PORT),
+    application:ensure_all_started(annlink),
+
+    Host = os:getenv("ANNLINK_HOST", "127.0.0.1"),
+    Port = list_to_integer(os:getenv("ANNLINK_PORT", "8778")),
+
+    {ok, Conn} = annlink:connect(Host, Port),
 
     %% Test case 1 -------------------------------------------------------------
     {error, <<"Minimum number of layers is 3">>} = annlink:create_neural_network(Conn, [2, 10]),
@@ -86,44 +137,5 @@ special_test() ->
     ?debugFmt(?MODULE_STRING ++ ":basic_test : model ~p ===> [Test case 5] prediction:~n~p~n", [ClientId2, Prediction]),
 
     ok = annlink:terminate_model(Conn, ClientId2),
-
-    annlink:disconnect(Conn).
-
-%%--------------------------------------------------------------------
-%% Basic Apache Thrift interface tests.
-%%--------------------------------------------------------------------
-
-basic_test() ->
-
-    {ok, Conn} = annlink:connect(?HOST, ?PORT),
-
-    ClientId = annlink:initialize_model(Conn, ?INPUT_SIZE, ?OUTPUT_SIZE, ?LEARNING_RATE),
-
-    ok = annlink:add_layer(Conn, ClientId, 10),
-
-    ok = annlink:add_layer(Conn, ClientId, ?OUTPUT_SIZE),
-
-    ok = annlink:add_activation(Conn, ClientId, ?ACTIVATION),
-
-    Inputs = [[0, 0], [0, 1], [1, 0], [1, 1]],
-    Labels = [[0], [1], [1], [0]],
-    ok = annlink:add_data_chunk(Conn, ClientId, Inputs, Labels, []),
-
-    ok = annlink:set_learning_rate(Conn, ClientId, ?LEARNING_RATE),
-
-    TrainResult = annlink:train(Conn, ClientId),
-    ?debugFmt(?MODULE_STRING ++ ":basic_test : model ~p ===> training result #1:~n~p~n", [ClientId, TrainResult]),
-
-    ok = annlink:set_cost(Conn, ClientId, ?COST_FUNCTION),
-
-    Weights = annlink:get_weights(Conn, ClientId),
-    ?debugFmt(?MODULE_STRING ++ ":basic_test : model ~p ===> weights:~n~p~n", [ClientId, Weights]),
-
-    ok = annlink:set_weights(Conn, ClientId, Weights),
-
-    Prediction = annlink:predict(Conn, ClientId, [[0, 0], [0, 1], [1, 0], [1, 1]]),
-    ?debugFmt(?MODULE_STRING ++ ":basic_test : model ~p ===> prediction:~n~p~n", [ClientId, Prediction]),
-
-    ok = annlink:terminate_model(Conn, ClientId),
 
     annlink:disconnect(Conn).
