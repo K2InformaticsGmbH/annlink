@@ -22,38 +22,37 @@ DEBUGGER = Dbg()
 
 class PythonServicesHandler:
     def __init__(self):
-        self.client_id = 0
-        self.clients = dict()
+        self.models = dict()
         self.model = None
 
 
     def add_activation(self,
-                       client_id,
+                       model_id,
                        activation):
         if DEBUGGER.active:
             print(
-                "{} - client {} - add_activation (activation={}): Start".format(basename(__file__),
-                                                                                client_id,
-                                                                                activation))
+                "{} - model {} - add_activation (activation={}): Start".format(basename(__file__),
+                                                                               model_id,
+                                                                               activation))
 
-        self.model = self.clients[client_id]
+        self.model = self.models[model_id]
 
         self.model.add_activation(activation)
 
-        self.clients[client_id] = self.model
+        self.models[model_id] = self.model
 
 
     def add_data_chunk(self,
-                       client_id,
+                       model_id,
                        data_chunk,
                        labels_chunk,
                        scale_chunk):
         if DEBUGGER.active:
-            print(("{} - client {} - add_data_chunk (data_chunk={}, labels_chunk={}, "
-                   + "scale_chunk={}): Start").format(basename(__file__), client_id, data_chunk,
+            print(("{} - model {} - add_data_chunk (data_chunk={}, labels_chunk={}, "
+                   + "scale_chunk={}): Start").format(basename(__file__), model_id, data_chunk,
                                                       labels_chunk, scale_chunk))
 
-        self.model = self.clients[client_id]
+        self.model = self.models[model_id]
 
         if not scale_chunk:
             scale = None
@@ -64,30 +63,30 @@ class PythonServicesHandler:
                                   labels_chunk,
                                   scale)
 
-        self.clients[client_id] = self.model
+        self.models[model_id] = self.model
 
 
     def add_layer(self,
-                  client_id,
+                  model_id,
                   layer_outputs):
         if DEBUGGER.active:
-            print("{} - client {} - add_layer (layer_outputs={}): Start".format(basename(__file__),
-                                                                                client_id,
-                                                                                layer_outputs))
+            print("{} - model {} - add_layer (layer_outputs={}): Start".format(basename(__file__),
+                                                                               model_id,
+                                                                               layer_outputs))
 
-        self.model = self.clients[client_id]
+        self.model = self.models[model_id]
 
         self.model.add_layer(layer_outputs)
 
-        self.clients[client_id] = self.model
+        self.models[model_id] = self.model
 
 
     def get_weights(self,
-                    client_id, ):
+                    model_id, ):
         if DEBUGGER.active:
-            print("{} - client {} - get_weights (): Start".format(basename(__file__), client_id)),
+            print("{} - model {} - get_weights (): Start".format(basename(__file__), model_id)),
 
-        self.model = self.clients[client_id]
+        self.model = self.models[model_id]
 
         return self.model.get_weights()
 
@@ -96,118 +95,118 @@ class PythonServicesHandler:
                          num_inputs,
                          num_outputs,
                          learning_rate):
-        self.client_id += 1
+        self.model = Model()
+        model_id = id(self.model)
 
         if DEBUGGER.active:
             print(
                 (
-                    "{} - client {} - initialize (num_inputs={}, " +
+                    "{} - model {} - initialize (num_inputs={}, " +
                     "num_outputs={}, learning_rate={}): Start").format(basename(__file__),
-                                                                       self.client_id,
+                                                                       model_id,
                                                                        num_inputs, num_outputs,
                                                                        learning_rate))
 
-        self.model = Model()
         self.model.initialize_model(num_inputs,
                                     num_outputs,
                                     learning_rate)
 
-        self.clients[self.client_id] = self.model
+        self.models[model_id] = self.model
 
-        return self.client_id
+        return model_id
 
 
     def predict(self,
-                client_id,
+                model_id,
                 data):
         if DEBUGGER.active:
-            print("{} - client {} - predict (data={}): Start".format(basename(__file__), client_id,
-                                                                     data))
+            print("{} - model {} - predict (data={}): Start".format(basename(__file__), model_id,
+                                                                    data))
 
-        self.model = self.clients[client_id]
+        self.model = self.models[model_id]
 
         prediction = self.model.predict(data)
 
-        self.clients[client_id] = self.model
+        self.models[model_id] = self.model
 
         return prediction
 
 
     def set_cost(self,
-                 client_id,
+                 model_id,
                  cost):
         if DEBUGGER.active:
-            print("{} - client {} - set_cost (cost={}): Start".format(basename(__file__), client_id,
-                                                                      cost))
+            print("{} - model {} - set_cost (cost={}): Start".format(basename(__file__), model_id,
+                                                                     cost))
 
-        self.model = self.clients[client_id]
+        self.model = self.models[model_id]
 
         self.model.set_cost(cost)
 
-        self.clients[client_id] = self.model
+        self.models[model_id] = self.model
 
 
     def set_learning_rate(self,
-                          client_id,
+                          model_id,
                           learning_rate):
         if DEBUGGER.active:
-            print("{} - client {} - set_learning_rate (learning_rate={}): Start".format(
+            print("{} - model {} - set_learning_rate (learning_rate={}): Start".format(
                 basename(__file__),
-                client_id,
+                model_id,
                 learning_rate))
 
-        self.model = self.clients[client_id]
+        self.model = self.models[model_id]
 
         self.model.set_learning_rate(learning_rate)
 
-        self.clients[client_id] = self.model
+        self.models[model_id] = self.model
 
 
     def set_weights(self,
-                    client_id,
+                    model_id,
                     new_weights):
         if DEBUGGER.active:
             print(
-                "{} - client {} - set_weights (new_weights={}): Start".format(basename(__file__),
-                                                                              client_id,
-                                                                              new_weights))
+                "{} - model {} - set_weights (new_weights={}): Start".format(basename(__file__),
+                                                                             model_id,
+                                                                             new_weights))
 
-        self.model = self.clients[client_id]
+        self.model = self.models[model_id]
 
         self.model.set_weights(new_weights)
 
-        self.clients[client_id] = self.model
+        self.models[model_id] = self.model
 
 
     def terminate_model(self,
-                        client_id):
+                        model_id):
         if DEBUGGER.active:
             print(
-                "{} - client {} - terminate_model (): Start".format(basename(__file__), client_id))
+                "{} - model {} - terminate_model (): Start".format(basename(__file__), model_id))
 
-        del self.clients[client_id]
+        del self.models[model_id]
 
         if DEBUGGER.active:
             print(
-                "{} - client {} - terminate_model (): active models {}".format(basename(__file__),
-                                                                               client_id,
-                                                                               len(self.clients)))
+                "{} - model {} - terminate_model (): active models {}".format(basename(__file__),
+                                                                              model_id,
+                                                                              len(self.models)))
 
 
     def train(self,
-              client_id,
+              model_id,
               epochs,
               batch_size):
         if DEBUGGER.active:
-            print("{} - client {} - train (epochs={}, batch_size={}): Start".format(
-                basename(__file__), client_id, epochs, batch_size))
+            print("{} - model {} - train (epochs={}, batch_size={}): Start".format(
+                basename(__file__), model_id, epochs, batch_size))
 
-        self.model = self.clients[client_id]
+        self.model = self.models[model_id]
 
         result = self.model.train(epochs,
                                   batch_size)
 
-        self.clients[client_id] = self.model
+        self.models[model_id] = self.model
 
         return result
 

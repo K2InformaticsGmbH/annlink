@@ -40,7 +40,7 @@
 %% dialyzer tyoe definitions.
 %%------------------------------------------------------------------------------
 
--type client_id() :: integer().
 -type connection_id() :: {atom(), atom(), tuple(), pos_integer()}.
 -type matrix() :: [[number()]].
+-type model_id() :: integer().
 -type network_id() :: binary().

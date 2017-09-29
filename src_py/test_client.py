@@ -68,20 +68,20 @@ def main():
     num_inputs = 2
     num_outputs = 1
     learning_rate = 0.001
-    client_id = client.initialize_model(num_inputs,
-                                        num_outputs,
-                                        learning_rate)
+    model_id = client.initialize_model(num_inputs,
+                                       num_outputs,
+                                       learning_rate)
 
     size = 10
-    client.add_layer(client_id,
+    client.add_layer(model_id,
                      size)
 
     activation = "sigmoid"
-    client.add_activation(client_id,
+    client.add_activation(model_id,
                           activation)
 
     size = 1
-    client.add_layer(client_id,
+    client.add_layer(model_id,
                      size)
 
     # --------------------------------------------------------------------------
@@ -96,7 +96,7 @@ def main():
     inputs = [[0, 0], [0, 1], [1, 0], [1, 1]]
     labels = [[0], [1], [1], [0]]
     scale = []
-    client.add_data_chunk(client_id,
+    client.add_data_chunk(model_id,
                           inputs,
                           labels,
                           scale)
@@ -107,7 +107,7 @@ def main():
     # --------------------------------------------------------------------------
 
     learning_rate = 0.05
-    client.set_learning_rate(client_id,
+    client.set_learning_rate(model_id,
                              learning_rate)
 
     # --------------------------------------------------------------------------
@@ -117,13 +117,13 @@ def main():
 
     epochs = 1
     batch_size = 512
-    result = client.train(client_id,
+    result = client.train(model_id,
                           epochs,
                           batch_size)
 
     if DEBUGGER.active:
-        print("{} - client {} - main ({}): result from train".format(basename(__file__), client_id,
-                                                                     result))
+        print("{} - model {} - main ({}): result from train".format(basename(__file__), model_id,
+                                                                    result))
 
     # --------------------------------------------------------------------------
     # >[annlink:train(Conn, ClientId, 200) || _ <- lists:seq(1,5)].
@@ -136,45 +136,45 @@ def main():
 
     epochs = 200
     batch_size = 512
-    result = client.train(client_id,
+    result = client.train(model_id,
                           epochs,
                           batch_size)
 
     if DEBUGGER.active:
-        print("{} - client {} - main ({}): result from train".format(basename(__file__), client_id,
-                                                                     result))
+        print("{} - model {} - main ({}): result from train".format(basename(__file__), model_id,
+                                                                    result))
 
-    result = client.train(client_id,
+    result = client.train(model_id,
                           epochs,
                           batch_size)
 
     if DEBUGGER.active:
-        print("{} - client {} - main ({}): result from train".format(basename(__file__), client_id,
-                                                                     result))
+        print("{} - model {} - main ({}): result from train".format(basename(__file__), model_id,
+                                                                    result))
 
-    result = client.train(client_id,
+    result = client.train(model_id,
                           epochs,
                           batch_size)
 
     if DEBUGGER.active:
-        print("{} - client {} - main ({}): result from train".format(basename(__file__), client_id,
-                                                                     result))
+        print("{} - model {} - main ({}): result from train".format(basename(__file__), model_id,
+                                                                    result))
 
-    result = client.train(client_id,
+    result = client.train(model_id,
                           epochs,
                           batch_size)
 
     if DEBUGGER.active:
-        print("{} - client {} - main ({}): result from train".format(basename(__file__), client_id,
-                                                                     result))
+        print("{} - model {} - main ({}): result from train".format(basename(__file__), model_id,
+                                                                    result))
 
-    result = client.train(client_id,
+    result = client.train(model_id,
                           epochs,
                           batch_size)
 
     if DEBUGGER.active:
-        print("{} - client {} - main ({}): result from train".format(basename(__file__), client_id,
-                                                                     result))
+        print("{} - model {} - main ({}): result from train".format(basename(__file__), model_id,
+                                                                    result))
 
     # --------------------------------------------------------------------------
     # >annlink:predict(Conn, ClientId, [[0,0], [0,1], [1,0], [1,1]]).
@@ -182,15 +182,15 @@ def main():
     # --------------------------------------------------------------------------
 
     data = [[0, 0], [0, 1], [1, 0], [1, 1]]
-    result = client.predict(client_id,
+    result = client.predict(model_id,
                             data)
 
     if DEBUGGER.active:
         print(
-            "{} - client {} - main ({}): result from predict".format(basename(__file__), client_id,
-                                                                     result))
+            "{} - model {} - main ({}): result from predict".format(basename(__file__), model_id,
+                                                                    result))
 
-    client.terminate_model(client_id),
+    client.terminate_model(model_id),
 
     # --------------------------------------------------------------------------
     # Terminate client

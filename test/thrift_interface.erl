@@ -56,9 +56,9 @@ special_test() ->
         ]
     ],
 
-    ClientId1 = annlink:create_neural_network(Conn, [2, 10, 1], Weights),
+    ModelId = annlink:create_neural_network(Conn, [2, 10, 1], Weights),
 
-    ok = annlink:terminate_model(Conn, ClientId1),
+    ok = annlink:terminate_model(Conn, ModelId),
 
     %% Test case 3 -------------------------------------------------------------
     {error, <<"Activation function not supported">>} = annlink:create_neural_network(Conn, [2, 10, 1], relux),
@@ -80,10 +80,10 @@ special_test() ->
     ok = annlink:add_data_chunk(Conn, ClientId2, Inputs, Labels, []),
 
     TrainResult = annlink:train(Conn, ClientId2),
-    ?debugFmt(?MODULE_STRING ++ ":basic_test : client ~p ===> [Test case 5] training result #1:~n~p~n", [ClientId2, TrainResult]),
+    ?debugFmt(?MODULE_STRING ++ ":basic_test : model ~p ===> [Test case 5] training result #1:~n~p~n", [ClientId2, TrainResult]),
 
     Prediction = annlink:predict(Conn, ClientId2, [0, 0]),
-    ?debugFmt(?MODULE_STRING ++ ":basic_test : client ~p ===> [Test case 5] prediction:~n~p~n", [ClientId2, Prediction]),
+    ?debugFmt(?MODULE_STRING ++ ":basic_test : model ~p ===> [Test case 5] prediction:~n~p~n", [ClientId2, Prediction]),
 
     ok = annlink:terminate_model(Conn, ClientId2),
 
@@ -112,17 +112,17 @@ basic_test() ->
     ok = annlink:set_learning_rate(Conn, ClientId, ?LEARNING_RATE),
 
     TrainResult = annlink:train(Conn, ClientId),
-    ?debugFmt(?MODULE_STRING ++ ":basic_test : client ~p ===> training result #1:~n~p~n", [ClientId, TrainResult]),
+    ?debugFmt(?MODULE_STRING ++ ":basic_test : model ~p ===> training result #1:~n~p~n", [ClientId, TrainResult]),
 
     ok = annlink:set_cost(Conn, ClientId, ?COST_FUNCTION),
 
     Weights = annlink:get_weights(Conn, ClientId),
-    ?debugFmt(?MODULE_STRING ++ ":basic_test : client ~p ===> weights:~n~p~n", [ClientId, Weights]),
+    ?debugFmt(?MODULE_STRING ++ ":basic_test : model ~p ===> weights:~n~p~n", [ClientId, Weights]),
 
     ok = annlink:set_weights(Conn, ClientId, Weights),
 
     Prediction = annlink:predict(Conn, ClientId, [[0, 0], [0, 1], [1, 0], [1, 1]]),
-    ?debugFmt(?MODULE_STRING ++ ":basic_test : client ~p ===> prediction:~n~p~n", [ClientId, Prediction]),
+    ?debugFmt(?MODULE_STRING ++ ":basic_test : model ~p ===> prediction:~n~p~n", [ClientId, Prediction]),
 
     ok = annlink:terminate_model(Conn, ClientId),
 

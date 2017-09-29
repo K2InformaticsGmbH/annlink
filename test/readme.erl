@@ -31,23 +31,23 @@ readme_test() ->
 
     ?debugFmt("~n" ++ ?MODULE_STRING ++ ": readme_test() ===> Conn=~p ~n", [Conn]),
 
-    ClientId = annlink:create_neural_network(Conn, [2, 10, 1]),
+    ModelId = annlink:create_neural_network(Conn, [2, 10, 1]),
 
     Inputs = [[0, 0], [0, 1], [1, 0], [1, 1]],
     Labels = [[0], [1], [1], [0]],
-    ok = annlink:add_data_chunk(Conn, ClientId, Inputs, Labels, []),
+    ok = annlink:add_data_chunk(Conn, ModelId, Inputs, Labels, []),
 
-    ok = annlink:set_learning_rate(Conn, ClientId, 0.05),
+    ok = annlink:set_learning_rate(Conn, ModelId, 0.05),
 
-    TrainResult = annlink:train(Conn, ClientId),
-    ?debugFmt("~n" ++ ": readme_test : client ~p ===> training result #1:~n~p~n", [ClientId, TrainResult]),
+    TrainResult = annlink:train(Conn, ModelId),
+    ?debugFmt("~n" ++ ": readme_test : model ~p ===> training result #1:~n~p~n", [ModelId, TrainResult]),
 
-    TrainResults = [annlink:train(Conn, ClientId, 200) || _ <- lists:seq(1, 5)],
-    ?debugFmt("~n" ++ ": readme_test : client ~p ===> remaining training results:~n~p~n", [ClientId, TrainResults]),
+    TrainResults = [annlink:train(Conn, ModelId, 200) || _ <- lists:seq(1, 5)],
+    ?debugFmt("~n" ++ ": readme_test : model ~p ===> remaining training results:~n~p~n", [ModelId, TrainResults]),
 
-    Prediction = annlink:predict(Conn, ClientId, [[0, 0], [0, 1], [1, 0], [1, 1]]),
-    ?debugFmt("~n" ++ ": readme_test : client ~p ===> prediction:~n~p~n", [ClientId, Prediction]),
+    Prediction = annlink:predict(Conn, ModelId, [[0, 0], [0, 1], [1, 0], [1, 1]]),
+    ?debugFmt("~n" ++ ": readme_test : model ~p ===> prediction:~n~p~n", [ModelId, Prediction]),
 
-    ok = annlink:terminate_model(Conn, ClientId),
+    ok = annlink:terminate_model(Conn, ModelId),
 
     annlink:disconnect(Conn).
