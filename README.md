@@ -55,8 +55,8 @@ rebar3 eunit
 
 The following environment variables can be used to control the server address:
 
-- ANNLINK_HOST : host address with default value '127.0.0.1'
-- ANNLINK_PORT : port number with default value 8778
+- `ANNLINK_HOST` : host address with default value `127.0.0.1`
+- `ANNLINK_PORT` : port number with default value `8778`
 
 
 ## XOR Trainig
