@@ -1,4 +1,4 @@
-<center> <h1> annlink </h1> </center>
+# annlink
 
 [![Build Status](https://travis-ci.org/walter-weinmann/annlink.svg?branch=master)](https://travis-ci.org/walter-weinmann/annlink)
 
