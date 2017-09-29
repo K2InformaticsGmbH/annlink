@@ -22,6 +22,7 @@ DEBUGGER = Dbg()
 
 class PythonServicesHandler:
     def __init__(self):
+        self.client_id = 0
         self.clients = dict()
         self.model = None
 
@@ -91,26 +92,29 @@ class PythonServicesHandler:
         return self.model.get_weights()
 
 
-    def initialize(self,
-                   client_id,
-                   num_inputs,
-                   num_outputs,
-                   learning_rate):
+    def initialize_model(self,
+                         num_inputs,
+                         num_outputs,
+                         learning_rate):
+        self.client_id += 1
+
         if DEBUGGER.active:
             print(
                 (
                     "{} - client {} - initialize (num_inputs={}, " +
                     "num_outputs={}, learning_rate={}): Start").format(basename(__file__),
-                                                                       client_id,
+                                                                       self.client_id,
                                                                        num_inputs, num_outputs,
                                                                        learning_rate))
 
         self.model = Model()
-        self.model.initialize(num_inputs,
-                              num_outputs,
-                              learning_rate)
+        self.model.initialize_model(num_inputs,
+                                    num_outputs,
+                                    learning_rate)
 
-        self.clients[client_id] = self.model
+        self.clients[self.client_id] = self.model
+
+        return self.client_id
 
 
     def predict(self,

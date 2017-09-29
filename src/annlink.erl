@@ -6,12 +6,12 @@
 -export([
     start_link/3,
     connect/2,
+    create_neural_network/2,
     create_neural_network/3,
     create_neural_network/4,
-    create_neural_network/5,
     supported_activations/0,
-    initialize/4,
-    initialize/5,
+    initialize_model/3,
+    initialize_model/4,
     add_layer/3,
     add_activation/3,
     set_cost/3,
@@ -59,41 +59,44 @@ connect(Address, Port) ->
     annlink_model_sup:start_network(Address, Port).
 
 %% ann helper function.
--spec create_neural_network(network_id(), client_id(), [pos_integer()]) -> ok.
-create_neural_network(NetworkId, ClientId, Layers) ->
-    create_neural_network(NetworkId, ClientId, Layers, sigmoid).
+-spec create_neural_network(network_id(), [pos_integer()]) -> client_id().
+create_neural_network(NetworkId, Layers) ->
+    create_neural_network(NetworkId, Layers, sigmoid).
 
--spec create_neural_network(network_id(), client_id(), [pos_integer()], atom() | matrix()) -> {error, term()} | ok.
-create_neural_network(_NetworkId, _ClientId, Layers, _) when length(Layers) < 3 ->
+-spec create_neural_network(network_id(), [pos_integer()], atom() | matrix()) -> {error, term()} | client_id().
+create_neural_network(_NetworkId, Layers, _) when length(Layers) < 3 ->
     {error, <<"Minimum number of layers is 3">>};
-create_neural_network(NetworkId, ClientId, Layers, Weights) when is_list(Weights) ->
-    create_neural_network(NetworkId, ClientId, Layers, Weights, sigmoid);
-create_neural_network(NetworkId, ClientId, [InputSize | Rest], Activation) when is_atom(Activation) ->
+create_neural_network(NetworkId, Layers, Weights) when is_list(Weights) ->
+    create_neural_network(NetworkId, Layers, Weights, sigmoid);
+create_neural_network(NetworkId, [InputSize | Rest], Activation) when is_atom(Activation) ->
     case lists:member(Activation, supported_activations()) of
         false -> {error, <<"Activation function not supported">>};
         true ->
             %% TODO: This might will crash the caller change to handle errors.
-            ok = initialize(NetworkId, ClientId, InputSize, lists:last(Rest)),
-            add_layers(NetworkId, ClientId, Rest, Activation)
+            ClientId = initialize_model(NetworkId, InputSize, lists:last(Rest)),
+            add_layers(NetworkId, ClientId, Rest, Activation),
+            ClientId
     end.
 
--spec create_neural_network(network_id(), client_id(), [pos_integer()], matrix(), atom()) -> {error, term()} | ok.
-create_neural_network(NetworkId, ClientId, Layers, Weights, Activation) when is_atom(Activation) ->
-    case create_neural_network(NetworkId, ClientId, Layers, Activation) of
+-spec create_neural_network(network_id(), [pos_integer()], matrix(), atom()) -> {error, term()} | client_id().
+create_neural_network(NetworkId, Layers, Weights, Activation) when is_atom(Activation) ->
+    case create_neural_network(NetworkId, Layers, Activation) of
         {error, _} = Error -> Error;
-        ok -> set_weights(NetworkId, ClientId, Weights)
+        ClientId ->
+            set_weights(NetworkId, ClientId, Weights),
+            ClientId
     end.
 
 -spec supported_activations() -> [atom()].
 supported_activations() -> [relu, sigmoid, softsign, tanh, tanh1].
 
--spec initialize(network_id(), client_id(), pos_integer(), pos_integer()) -> ok.
-initialize(NetworkId, ClientId, InpSize, OutSize) ->
-    initialize(NetworkId, ClientId, InpSize, OutSize, ?LEARNING_RATE).
+-spec initialize_model(network_id(), pos_integer(), pos_integer()) -> client_id().
+initialize_model(NetworkId, InpSize, OutSize) ->
+    initialize_model(NetworkId, InpSize, OutSize, ?LEARNING_RATE).
 
--spec initialize(network_id(), client_id(), pos_integer(), pos_integer(), float()) -> ok.
-initialize(NetworkId, ClientId, InpSize, OutSize, LearningRate) ->
-    gen_server:call(?NETWORK_GID(NetworkId), {initialize, [ClientId, InpSize, OutSize, LearningRate]}, ?TIMEOUT).
+-spec initialize_model(network_id(), pos_integer(), pos_integer(), float()) -> client_id().
+initialize_model(NetworkId, InpSize, OutSize, LearningRate) ->
+    gen_server:call(?NETWORK_GID(NetworkId), {initialize_model, [InpSize, OutSize, LearningRate]}, ?TIMEOUT).
 
 -spec add_layer(network_id(), client_id(), pos_integer()) -> ok | {error, binary()}.
 add_layer(NetworkId, ClientId, Size) ->

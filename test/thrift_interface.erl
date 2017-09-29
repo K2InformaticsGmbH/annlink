@@ -31,12 +31,8 @@ special_test() ->
 
     {ok, Conn} = annlink:connect(?HOST, ?PORT),
 
-    timer:sleep(1),
-    ClientId = erlang:monotonic_time(nanosecond),
-    ?debugFmt("~n" ++ ?MODULE_STRING ++ ": readme_test() ===> ClientId=~p ~n", [ClientId]),
-
     %% Test case 1 -------------------------------------------------------------
-    {error, <<"Minimum number of layers is 3">>} = annlink:create_neural_network(Conn, ClientId, [2, 10]),
+    {error, <<"Minimum number of layers is 3">>} = annlink:create_neural_network(Conn, [2, 10]),
 
     %% Test case 2 -------------------------------------------------------------
     Weights = [
@@ -60,34 +56,36 @@ special_test() ->
         ]
     ],
 
-    ok = annlink:create_neural_network(Conn, ClientId, [2, 10, 1], Weights),
+    ClientId1 = annlink:create_neural_network(Conn, [2, 10, 1], Weights),
+
+    ok = annlink:terminate_model(Conn, ClientId1),
 
     %% Test case 3 -------------------------------------------------------------
-    {error, <<"Activation function not supported">>} = annlink:create_neural_network(Conn, ClientId, [2, 10, 1], relux),
+    {error, <<"Activation function not supported">>} = annlink:create_neural_network(Conn, [2, 10, 1], relux),
 
     %% Test case 4 -------------------------------------------------------------
-    {error, <<"Activation function not supported">>} = annlink:create_neural_network(Conn, ClientId, [2, 10, 1], Weights, relux),
+    {error, <<"Activation function not supported">>} = annlink:create_neural_network(Conn, [2, 10, 1], Weights, relux),
 
     %% Test case 5 -------------------------------------------------------------
-    ok = annlink:initialize(Conn, ClientId, ?INPUT_SIZE, ?OUTPUT_SIZE, ?LEARNING_RATE),
+    ClientId2 = annlink:initialize_model(Conn, ?INPUT_SIZE, ?OUTPUT_SIZE, ?LEARNING_RATE),
 
-    ok = annlink:add_layer(Conn, ClientId, 10),
+    ok = annlink:add_layer(Conn, ClientId2, 10),
 
-    ok = annlink:add_layer(Conn, ClientId, ?OUTPUT_SIZE),
+    ok = annlink:add_layer(Conn, ClientId2, ?OUTPUT_SIZE),
 
-    ok = annlink:add_activation(Conn, ClientId, ?ACTIVATION),
+    ok = annlink:add_activation(Conn, ClientId2, ?ACTIVATION),
 
     Inputs = [[0, 0], [0, 1], [1, 0], [1, 1]],
     Labels = [[0], [1], [1], [0]],
-    ok = annlink:add_data_chunk(Conn, ClientId, Inputs, Labels, []),
+    ok = annlink:add_data_chunk(Conn, ClientId2, Inputs, Labels, []),
 
-    TrainResult = annlink:train(Conn, ClientId),
-    ?debugFmt(?MODULE_STRING ++ ":basic_test ===> [Test case 5] training result #1:~n~p~n", [TrainResult]),
+    TrainResult = annlink:train(Conn, ClientId2),
+    ?debugFmt(?MODULE_STRING ++ ":basic_test : client ~p ===> [Test case 5] training result #1:~n~p~n", [ClientId2, TrainResult]),
 
-    Prediction = annlink:predict(Conn, ClientId, [0, 0]),
-    ?debugFmt(?MODULE_STRING ++ ":basic_test ===> [Test case 5] prediction:~n~p~n", [Prediction]),
+    Prediction = annlink:predict(Conn, ClientId2, [0, 0]),
+    ?debugFmt(?MODULE_STRING ++ ":basic_test : client ~p ===> [Test case 5] prediction:~n~p~n", [ClientId2, Prediction]),
 
-    ok = annlink:terminate_model(Conn, ClientId),
+    ok = annlink:terminate_model(Conn, ClientId2),
 
     annlink:disconnect(Conn).
 
@@ -99,11 +97,7 @@ basic_test() ->
 
     {ok, Conn} = annlink:connect(?HOST, ?PORT),
 
-    timer:sleep(1),
-    ClientId = erlang:monotonic_time(nanosecond),
-    ?debugFmt("~n" ++ ?MODULE_STRING ++ ": readme_test() ===> ClientId=~p ~n", [ClientId]),
-
-    ok = annlink:initialize(Conn, ClientId, ?INPUT_SIZE, ?OUTPUT_SIZE, ?LEARNING_RATE),
+    ClientId = annlink:initialize_model(Conn, ?INPUT_SIZE, ?OUTPUT_SIZE, ?LEARNING_RATE),
 
     ok = annlink:add_layer(Conn, ClientId, 10),
 
@@ -118,17 +112,17 @@ basic_test() ->
     ok = annlink:set_learning_rate(Conn, ClientId, ?LEARNING_RATE),
 
     TrainResult = annlink:train(Conn, ClientId),
-    ?debugFmt(?MODULE_STRING ++ ":basic_test ===> training result #1:~n~p~n", [TrainResult]),
+    ?debugFmt(?MODULE_STRING ++ ":basic_test : client ~p ===> training result #1:~n~p~n", [ClientId, TrainResult]),
 
     ok = annlink:set_cost(Conn, ClientId, ?COST_FUNCTION),
 
     Weights = annlink:get_weights(Conn, ClientId),
-    ?debugFmt(?MODULE_STRING ++ ":basic_test ===> weights:~n~p~n", [Weights]),
+    ?debugFmt(?MODULE_STRING ++ ":basic_test : client ~p ===> weights:~n~p~n", [ClientId, Weights]),
 
     ok = annlink:set_weights(Conn, ClientId, Weights),
 
     Prediction = annlink:predict(Conn, ClientId, [[0, 0], [0, 1], [1, 0], [1, 1]]),
-    ?debugFmt(?MODULE_STRING ++ ":basic_test ===> prediction:~n~p~n", [Prediction]),
+    ?debugFmt(?MODULE_STRING ++ ":basic_test : client ~p ===> prediction:~n~p~n", [ClientId, Prediction]),
 
     ok = annlink:terminate_model(Conn, ClientId),
 

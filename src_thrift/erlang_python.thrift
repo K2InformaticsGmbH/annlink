@@ -23,10 +23,9 @@ service ErlangPythonServices {
    layer predict(1:client_id client_id,
                  2:layer data),
 
-   void initialize(1:client_id client_id,
-                   2:i64 num_inputs,
-                   3:i64 num_outputs,
-                   4:double learning_rate),
+   client_id initialize_model(1:i64 num_inputs,
+                              2:i64 num_outputs,
+                              3:double learning_rate),
 
    void set_cost(1:client_id client_id,
                  2:string cost),

@@ -23,7 +23,7 @@ class Model(object):
         self._sess = None
 
 
-    def initialize(self, num_inputs, num_outputs, learning_rate=0.001):
+    def initialize_model(self, num_inputs, num_outputs, learning_rate=0.001):
         tf.reset_default_graph()
         self.lr = learning_rate
         self.x = tf.placeholder(tf.float32, [None, num_inputs], 'x')
