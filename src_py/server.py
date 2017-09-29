@@ -1,61 +1,253 @@
-import socketserver
-import json
+from os.path import basename
 
+from erlang_python import ErlangPythonServices
+from helper import get_host, get_port
 from tfimpl import Model
+from thrift.protocol import TBinaryProtocol
+from thrift.server import TServer
+from thrift.transport import TSocket
+from thrift.transport import TTransport
 
-class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
-    pass
 
-class MyTCPHandler(socketserver.BaseRequestHandler):
-    """
-    The RequestHandler class for our server.
+class Dbg(object):
+    active = False
 
-    It is instantiated once per connection to the server, and must
-    override the handle() method to implement communication to the
-    client.
-    """
 
-    def handle(self):
-        # self.request is the TCP socket connected to the client
-        print("Connection received from {}".format(self.client_address[0]))
-        model = Model()
-        while True:
-            msglen = int.from_bytes(read_exact(self.request, 4), 'big')
-            data = read_exact(self.request, msglen)
-            print("Msg length:", len(data))
-            message = json.loads(data.decode('utf-8'))
-            operation = message['operation']
-            arguments = message['args']
-            resp = call(model, operation, arguments)
-            resplen = len(resp)
-            # Send the response back to the client
-            respmsg = resplen.to_bytes(4, 'big') + resp
-            print("Response:", respmsg)
-            self.request.sendall(respmsg)
+DEBUGGER = Dbg()
 
-def read_exact(socket, size):
-    data = b''
-    while len(data) < size:
-        buffer = socket.recv(size - len(data))
-        print("received: ", buffer)
-        if not buffer:
-            raise ValueError('Connection closed')
-        data += buffer
-    return data
 
-def call(model, operation, arguments):
-    result = getattr(model, operation)(*arguments)
-    print("Function call result", result)
-    if operation != "predict" and operation != "get_weights" and operation != "train":
-        # TODO: We don't care for the result of anything that is not
-        #       predict, get_weights or train.
-        result = "ok"
-    return json.dumps({'result': result}).encode('utf-8')
+# --------------------------------------------------------------------------
+# Python services
+# --------------------------------------------------------------------------
+
+class PythonServicesHandler:
+    def __init__(self):
+        self.models = dict()
+        self.model = None
+
+
+    def add_activation(self,
+                       model_id,
+                       activation):
+        if DEBUGGER.active:
+            print(
+                "{} - model {} - add_activation (activation={}): Start".format(basename(__file__),
+                                                                               model_id,
+                                                                               activation))
+
+        self.model = self.models[model_id]
+
+        self.model.add_activation(activation)
+
+        self.models[model_id] = self.model
+
+
+    def add_data_chunk(self,
+                       model_id,
+                       data_chunk,
+                       labels_chunk,
+                       scale_chunk):
+        if DEBUGGER.active:
+            print(("{} - model {} - add_data_chunk (data_chunk={}, labels_chunk={}, "
+                   + "scale_chunk={}): Start").format(basename(__file__), model_id, data_chunk,
+                                                      labels_chunk, scale_chunk))
+
+        self.model = self.models[model_id]
+
+        if not scale_chunk:
+            scale = None
+        else:
+            scale = scale_chunk
+
+        self.model.add_data_chunk(data_chunk,
+                                  labels_chunk,
+                                  scale)
+
+        self.models[model_id] = self.model
+
+
+    def add_layer(self,
+                  model_id,
+                  layer_outputs):
+        if DEBUGGER.active:
+            print("{} - model {} - add_layer (layer_outputs={}): Start".format(basename(__file__),
+                                                                               model_id,
+                                                                               layer_outputs))
+
+        self.model = self.models[model_id]
+
+        self.model.add_layer(layer_outputs)
+
+        self.models[model_id] = self.model
+
+
+    def get_weights(self,
+                    model_id, ):
+        if DEBUGGER.active:
+            print("{} - model {} - get_weights (): Start".format(basename(__file__), model_id)),
+
+        self.model = self.models[model_id]
+
+        return self.model.get_weights()
+
+
+    def initialize_model(self,
+                         num_inputs,
+                         num_outputs,
+                         learning_rate):
+        self.model = Model()
+        model_id = id(self.model)
+
+        if DEBUGGER.active:
+            print(
+                (
+                    "{} - model {} - initialize (num_inputs={}, " +
+                    "num_outputs={}, learning_rate={}): Start").format(basename(__file__),
+                                                                       model_id,
+                                                                       num_inputs, num_outputs,
+                                                                       learning_rate))
+
+        self.model.initialize_model(num_inputs,
+                                    num_outputs,
+                                    learning_rate)
+
+        self.models[model_id] = self.model
+
+        return model_id
+
+
+    def predict(self,
+                model_id,
+                data):
+        if DEBUGGER.active:
+            print("{} - model {} - predict (data={}): Start".format(basename(__file__), model_id,
+                                                                    data))
+
+        self.model = self.models[model_id]
+
+        prediction = self.model.predict(data)
+
+        self.models[model_id] = self.model
+
+        return prediction
+
+
+    def set_cost(self,
+                 model_id,
+                 cost):
+        if DEBUGGER.active:
+            print("{} - model {} - set_cost (cost={}): Start".format(basename(__file__), model_id,
+                                                                     cost))
+
+        self.model = self.models[model_id]
+
+        self.model.set_cost(cost)
+
+        self.models[model_id] = self.model
+
+
+    def set_learning_rate(self,
+                          model_id,
+                          learning_rate):
+        if DEBUGGER.active:
+            print("{} - model {} - set_learning_rate (learning_rate={}): Start".format(
+                basename(__file__),
+                model_id,
+                learning_rate))
+
+        self.model = self.models[model_id]
+
+        self.model.set_learning_rate(learning_rate)
+
+        self.models[model_id] = self.model
+
+
+    def set_weights(self,
+                    model_id,
+                    new_weights):
+        if DEBUGGER.active:
+            print(
+                "{} - model {} - set_weights (new_weights={}): Start".format(basename(__file__),
+                                                                             model_id,
+                                                                             new_weights))
+
+        self.model = self.models[model_id]
+
+        self.model.set_weights(new_weights)
+
+        self.models[model_id] = self.model
+
+
+    def terminate_model(self,
+                        model_id):
+        if DEBUGGER.active:
+            print(
+                "{} - model {} - terminate_model (): Start".format(basename(__file__), model_id))
+
+        del self.models[model_id]
+
+        if DEBUGGER.active:
+            print(
+                "{} - model {} - terminate_model (): active models {}".format(basename(__file__),
+                                                                              model_id,
+                                                                              len(self.models)))
+
+
+    def train(self,
+              model_id,
+              epochs,
+              batch_size):
+        if DEBUGGER.active:
+            print("{} - model {} - train (epochs={}, batch_size={}): Start".format(
+                basename(__file__), model_id, epochs, batch_size))
+
+        self.model = self.models[model_id]
+
+        result = self.model.train(epochs,
+                                  batch_size)
+
+        self.models[model_id] = self.model
+
+        return result
+
+
+# --------------------------------------------------------------------------
+# Starting the server
+# --------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    # Create the server, binding to any interface on port 8778
-    server = ThreadedTCPServer(('', 8778), MyTCPHandler)
+    if DEBUGGER.active:
+        print("{} - __main__ (): Start".format(basename(__file__)))
 
-    # Activate the server; this will keep running until you
-    # interrupt the program with Ctrl-C
-    server.serve_forever()
+    # --------------------------------------------------------------------------
+    # Read network parameters
+    # --------------------------------------------------------------------------
+
+    host = get_host()
+    port = get_port()
+
+    # --------------------------------------------------------------------------
+    # Configuring server
+    # --------------------------------------------------------------------------
+
+    handler = PythonServicesHandler()
+    processor = ErlangPythonServices.Processor(handler)
+    transport = TSocket.TServerSocket(host=host, port=port)
+    tfactory = TTransport.TBufferedTransportFactory()
+    pfactory = TBinaryProtocol.TBinaryProtocolFactory()
+
+    server = TServer.TThreadedServer(processor, transport, tfactory, pfactory)
+
+    # --------------------------------------------------------------------------
+    # Running server
+    # --------------------------------------------------------------------------
+
+    print(("{} - __main__ (): This server with ip address {} and port number {} " +
+           "will keep running until you interrupt the program " +
+           "with Ctrl-C").format(basename(__file__), host, port))
+    print("...")
+
+    server.serve()
+
+    if DEBUGGER.active:
+        print("{} - __main__ (): Done".format(basename(__file__)))

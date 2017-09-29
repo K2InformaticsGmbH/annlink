@@ -34,6 +34,13 @@
 
 -define(NETWORK_GID(__NetworkId), {global, {network, __NetworkId}}).
 
-
-
 -endif.
+
+%%------------------------------------------------------------------------------
+%% Dialyzer type definitions.
+%%------------------------------------------------------------------------------
+
+-type connection_id() :: {atom(), atom(), tuple(), pos_integer()}.
+-type matrix() :: [[number()]].
+-type model_id() :: integer().
+-type network_id() :: binary().

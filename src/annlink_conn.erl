@@ -2,45 +2,28 @@
 
 -include("annlink.hrl").
 
+-define(NODEBUG, true).
+
 -export([
+    call/3,
     connect/2,
-    call/3
+    disconnect/1
 ]).
 
--spec connect(inet:socket_address() | inet:hostname(), inet:port_number()) ->  {ok, term()} | {error, binary()}.
+-spec call(connection_id(), atom(), list()) -> {ok | float() | matrix(), connection_id()}.
+call(Conn, Operation, Arguments)
+    when is_atom(Operation), is_list(Arguments) ->
+    {ConnNew, {ok, Result}} = thrift_client:call(Conn, Operation, Arguments),
+    {Result, ConnNew}.
+
+-spec connect(inet:socket_address() | inet:hostname(), inet:port_number()) -> {error, binary()} | {ok, connection_id()}.
 connect(Address, Port) ->
-    case gen_tcp:connect(Address, Port, [binary, {active, false}, {packet, raw}]) of
-        {ok, Socket} -> {ok, Socket};
+    case thrift_client_util:new(Address, Port, erlang_python_services_thrift, []) of
+        {ok, ThriftClientId} -> {ok, ThriftClientId};
         {error, Reason} ->
             {error, iolist_to_binary(io_lib:format("~p", [Reason]))}
     end.
 
--spec call(term(), binary(), [number()]) -> term() | {error, binary()}.
-call(Socket, Operation, Arguments) ->
-    MsgBin = jsx:encode(#{operation => Operation, args => Arguments}),
-    MsgSize = byte_size(MsgBin),
-    Msg = <<MsgSize:4/unit:8, MsgBin/binary>>,
-    %% TODO: Check if this can crash by returning something else.
-    ok = gen_tcp:send(Socket, Msg),
-    get_result(Socket).
-
--spec get_result(term()) -> term() | {error, binary()}.
-get_result(Socket) ->
-    case gen_tcp:recv(Socket, 4) of
-        {ok, <<MsgSize:4/unit:8>>} ->
-            case gen_tcp:recv(Socket, MsgSize) of
-                {ok, MsgBin} ->
-                    case jsx:decode(MsgBin, [return_maps]) of
-                        #{<<"error">> := Reason} when is_binary(Reason) -> {error, Reason};
-                        #{<<"result">> := <<"ok">>} -> ok;
-                        #{<<"result">> := Result} -> Result;
-                        Invalid ->
-                            ?Error("invalid response from server ~p", [Invalid]),
-                            {error, <<"Invalid response from server">>}
-                    end;
-                {error, Reason} ->
-                    {error, iolist_to_binary(io_lib:format("~p", [Reason]))}
-            end;
-        {error, Reason} ->
-            {error, iolist_to_binary(io_lib:format("~p", [Reason]))}
-    end.
+-spec disconnect(connection_id()) -> ok.
+disconnect(Conn) ->
+    thrift_client:close(Conn).

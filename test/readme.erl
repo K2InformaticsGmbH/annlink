@@ -9,40 +9,43 @@
 
 -module(readme).
 
+-include("annlink.hrl").
+
 -include_lib("eunit/include/eunit.hrl").
-
-%%------------------------------------------------------------------------------
-%% Default values.
-%%------------------------------------------------------------------------------
-
--define(HOST, '127.0.0.1').
--define(PORT, 8778).
 
 %%--------------------------------------------------------------------
 %% TEST CASES: README.md
 %%--------------------------------------------------------------------
 
 readme_test() ->
+    ?debugFmt("~n" ++ ?MODULE_STRING ++ ": readme_test() ===> Start ~n", []),
 
     application:ensure_all_started(annlink),
 
-    {ok, Conn} = annlink:new_connection(?HOST, ?PORT),
+    Host = os:getenv("ANNLINK_HOST", "127.0.0.1"),
+    Port = list_to_integer(os:getenv("ANNLINK_PORT", "8778")),
 
-    {ok, Conn} = annlink:create_neural_network(Conn, [2, 10, 1]),
+    {ok, Conn} = annlink:connect(Host, Port),
+
+    ?debugFmt("~n" ++ ?MODULE_STRING ++ ": readme_test() ===> Conn=~p ~n", [Conn]),
+
+    ModelId = annlink:create_neural_network(Conn, [2, 10, 1]),
 
     Inputs = [[0, 0], [0, 1], [1, 0], [1, 1]],
     Labels = [[0], [1], [1], [0]],
-    ok = annlink:add_data_chunk(Conn, Inputs, Labels),
+    ok = annlink:add_data_chunk(Conn, ModelId, Inputs, Labels, []),
 
-    ok = annlink:set_learning_rate(Conn, 0.05),
+    ok = annlink:set_learning_rate(Conn, ModelId, 0.05),
 
-    TrainResult = annlink:train(Conn),
-    ?debugFmt(?MODULE_STRING ++ ":readme_test ===> training result #1:~n~p~n", [TrainResult]),
+    TrainResult = annlink:train(Conn, ModelId),
+    ?debugFmt("~n" ++ ": readme_test : model ~p ===> training result #1:~n~p~n", [ModelId, TrainResult]),
 
-    TrainResults = [annlink:train(Conn, 200) || _ <- lists:seq(1, 5)],
-    ?debugFmt(?MODULE_STRING ++ ":readme_test ===> remaining training results:~n~p~n", [TrainResults]),
+    TrainResults = [annlink:train(Conn, ModelId, 200) || _ <- lists:seq(1, 5)],
+    ?debugFmt("~n" ++ ": readme_test : model ~p ===> remaining training results:~n~p~n", [ModelId, TrainResults]),
 
-    Prediction = annlink:predict(Conn, [[0, 0], [0, 1], [1, 0], [1, 1]]),
-    ?debugFmt(?MODULE_STRING ++ ":readme_test ===> prediction:~n~p~n", [Prediction]),
+    Prediction = annlink:predict(Conn, ModelId, [[0, 0], [0, 1], [1, 0], [1, 1]]),
+    ?debugFmt("~n" ++ ": readme_test : model ~p ===> prediction:~n~p~n", [ModelId, Prediction]),
 
-    ok.
+    ok = annlink:terminate_model(Conn, ModelId),
+
+    annlink:disconnect(Conn).
