@@ -1,5 +1,5 @@
 # annlink
-Link between eralgn applications and deep learning frameworks.
+Link between erlang applications and deep learning frameworks.
 
 # Installation
 
