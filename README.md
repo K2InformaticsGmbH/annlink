@@ -1,4 +1,7 @@
-# annlink
+<center> <h1> annlink </h1> </center>
+
+[![Build Status](https://travis-ci.org/walter-weinmann/annlink.svg?branch=master)](https://travis-ci.org/walter-weinmann/annlink)
+
 Link between eralgn applications and deep learning frameworks.
 
 ## Installation
